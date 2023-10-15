@@ -34,13 +34,47 @@ bool init_graph(char* filename, char edges[][VERTEX_NUM]) {
         fgets(buffer, 64, fp);
         buffer[strlen(buffer) - 1] = 0;
         token1 = strtok (buffer, " ");
-        row = atoi(token1);
+        row = atoi(token1) - 1;
         token2 = strtok (NULL, " ");
-        column = atoi(token2);
+        column = atoi(token2) -1;
         edges[row][column] = 1;
+        edges[column][row] = 1;
     }
     
     return true;
+}
+
+bool is_valid(int size, char edges[][size], char colors[][size]) {
+    int is_colored;
+    for(int i = 0; i < VERTEX_NUM; i++) {
+        is_colored = 0;
+        for(int j = 0; j < VERTEX_NUM; j++) {
+            is_colored += colors[j][i];
+        }
+
+        if(is_colored > 1) {
+            printf("The vertex %d has more than one color, exitting\n", i);
+            return false;
+        }
+    }
+
+
+    int color1, color2;
+    for(int i = 0; i < VERTEX_NUM; i++) {
+        for(int j = 0; j < VERTEX_NUM; j++) {
+            if(edges[i][j]) {
+                color1 = 0;
+                color2 = 0;
+
+                for(int k = 0; k < VERTEX_NUM; k++) {
+                    if(colors[k][j] & colors[k][i]){
+                        printf("The verteces %d and %d are connected and have the same color %d, exitting\n", i, j, k);
+                        return 0;
+                    }
+                }
+            }
+        }
+    }
 }
 
 int main() {
@@ -52,7 +86,10 @@ int main() {
      */
     static char edges[VERTEX_NUM][VERTEX_NUM];
 
-    init_graph("dataset4000.txt", edges);
+    if(!init_graph("graph_datasets/C4000.5.col", edges)) {
+        printf("Could not initialize graph, exitting ...\n");
+        return 0;
+    }
 
 
     /**
@@ -79,6 +116,8 @@ int main() {
             prob_queue[i] = current;
             i++;
         }
+        // prob_queue[i] = i;
+        // i++;
     }
 
 
@@ -86,25 +125,25 @@ int main() {
     t = clock(); 
     
     // Go through the queue and color each vertex.
-    int adjacent_colors[VERTEX_NUM];
-    bool color_assigned;
-    int current_node;
+    unsigned char adjacent_colors[VERTEX_NUM];
+    int current_vert;
     int max_color = 0;
     for(int i = 0; i < VERTEX_NUM; i++) {
         // Initialize the temporary data.
-        color_assigned = false;
-        for(int i = 0; i < VERTEX_NUM; i++)
-            adjacent_colors[i] = 0;
+        for(int j = 0; j < VERTEX_NUM; j++)
+            adjacent_colors[j] = 0;
 
-        current_node = prob_queue[i];
+        current_vert = prob_queue[i];
 
-        // Go through each edge of the vertex and list the uased colors.
+
+        // Go through each edge of the vertex and list the used colors.
         for(int j = 0; j < VERTEX_NUM; j++) {
             // This is a neighbor
-            if(edges[current_node][j]) {
+            if(edges[current_vert][j] == 1) {
                 // Check its color.
                 for(int k = 0; k < VERTEX_NUM; k++) {
-                    if(colors[k][j]) adjacent_colors[k] = 1;
+                    if(colors[k][j]) 
+                        adjacent_colors[k] = 1;
                 }
             }
         }
@@ -112,7 +151,7 @@ int main() {
         // Find the least unused color and assign this vertex to it.
         for(int j = 0; j < VERTEX_NUM; j++) {
             if(!adjacent_colors[j]) {
-                colors[j][current_node] = 1;
+                colors[j][current_vert] = 1;
                 if(max_color < j) max_color = j;
                 break;
             }
@@ -130,6 +169,8 @@ int main() {
             if(colors[i][j]) printf("%d, ", j);
         printf("\n");
     }
+
+    is_valid(VERTEX_NUM, edges, colors);
 
     return 0;
 }
