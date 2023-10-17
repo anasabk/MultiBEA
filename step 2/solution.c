@@ -5,9 +5,29 @@
 #include <fcntl.h>
 #include <unistd.h> 
 #include <string.h>
+#include <float.h>
+#include <sys/resource.h>
+#include <errno.h>
 
 #define VERTEX_NUM 4000
 
+void print_progress(size_t count, size_t max) {
+    const int bar_width = 50;
+
+    float progress = (float) count / max;
+    int bar_length = progress * bar_width;
+
+    printf("\rProgress: [");
+    for (int i = 0; i < bar_length; ++i) {
+        printf("#");
+    }
+    for (int i = bar_length; i < bar_width; ++i) {
+        printf(" ");
+    }
+    printf("] %.2f%%", progress * 100);
+
+    fflush(stdout);
+}
 
 bool exists(int* arr, int len, int target) {
     for(int i = 0; i < len; i++)
@@ -22,9 +42,7 @@ bool init_graph(char* filename, int size, char edges[][size]) {
     if(fp == NULL)
         return false;
 
-    for(int i = 0; i < size; i++)
-        for(int j = 0; j < size; j++)
-            edges[i][j] = 0;
+    memset(edges, 0, size*size);
 
     char buffer[64];
     char* token1, *token2;
@@ -41,17 +59,21 @@ bool init_graph(char* filename, int size, char edges[][size]) {
         edges[column][row] = 1;
     }
     
+    fclose(fp);
     return true;
 }
 
 bool is_valid(int size, char edges[][size], char colors[][size]) {
+    // Scan for vertices with multiple colors.
     int is_colored;
+    // Iterate through vertices.
     for(int i = 0; i < size; i++) {
         is_colored = 0;
-        for(int j = 0; j < size; j++) {
+        // Iterate through colors and look for the vertex.
+        for(int j = 0; j < size; j++)
             is_colored += colors[j][i];
-        }
 
+        // Check if the vertex had more then one color.
         if(is_colored > 1) {
             printf("The vertex %d has more than one color, exitting\n", i);
             return false;
@@ -59,15 +81,21 @@ bool is_valid(int size, char edges[][size], char colors[][size]) {
     }
 
 
+    // Scan for adjacent vertices with the same color. 
     int color1, color2;
+    // Iterate through each vertex.
     for(int i = 0; i < size; i++) {
+        // Iterate through each edge of the vertex.
         for(int j = 0; j < size; j++) {
             if(edges[i][j]) {
+                // Edge exists.
                 color1 = 0;
                 color2 = 0;
 
+                // Check for the other vertex's color.
                 for(int k = 0; k < size; k++) {
                     if(colors[k][j] & colors[k][i]){
+                        // The two vertices have the same color.
                         printf("The verteces %d and %d are connected and have the same color %d, exitting\n", i, j, k);
                         return 0;
                     }
@@ -79,62 +107,47 @@ bool is_valid(int size, char edges[][size], char colors[][size]) {
     return true;
 }
 
-int color_graph(char* dataset_name, int size, double* time_taken) {
-    /**
-     * This 2D array stores the edges of every vertex in the graph.
-     * The numbers of rows and columns present the numbers of vertices,
-     * and the place where they cross is an edges, if it is assigned to
-     * 1, then the edge exists, otherwise, it doesn't.
-     */
-    char edges[size][size];
-    if(!init_graph(dataset_name, size, edges)) {
-        printf("Could not initialize graph, exitting ...\n");
-        return 0;
-    }
-
-
-    /**
-     * This 2D array stores the color of every vertex.
-     * The row numbers present the colors, and the column numbers 
-     * present the vertex numbers. When a cell is assigned to 1,
-     * it means that the the vertex has the color of that row.
-     */
-    char colors[size][size];
+int count_edges(int size, char edges[][size], int count[]) {
     for(int i = 0; i < size; i++)
-        for(int j = 0; j < size; j++)
-            colors[i][j] = 0;
+        count[i] = 0;
 
-
-    // Create a random queue of vertices to propagate.
-    srand(time(0));
-    int prob_queue[size];
-    int current;
-    int i = 0;
-    while (i < size) {
-        current = rand()%size;
-        if(!exists(prob_queue, i, current)) {
-            prob_queue[i] = current;
-            i++;
+    for(int i = 0; i < size; i++) {
+        for(int j = 0; j <= i; j++) {
+            count[i] += edges[i][j];
+            count[j] += edges[i][j];
         }
     }
 
+    int max_count = 0;
+    for(int i = 0; i < size; i++)
+        if(max_count < count[i])
+            max_count = count[i];
 
-    clock_t t;
-    t = clock(); 
+    return max_count;
+}
+
+int color_graph(int size, char edges[][size], char colors[][size]) {
+    // Create a random queue of vertices to propagate.
+    srand(time(0));
+    int prob_queue[size];
+    int i = 0;
+    while (i < size) {
+        prob_queue[i] = rand()%size;
+        if(!exists(prob_queue, i, prob_queue[i]))
+            i++;
+    }
     
     // Go through the queue and color each vertex.
     unsigned char adjacent_colors[size];
+    unsigned int max_color = 0;
     int current_vert;
-    int max_color = 0;
     for(int i = 0; i < size; i++) {
         // Initialize the temporary data.
+        current_vert = prob_queue[i];
         for(int j = 0; j < size; j++)
             adjacent_colors[j] = 0;
 
-        current_vert = prob_queue[i];
-
-
-        // Go through each edge of the vertex and list the used colors.
+        // Go through each edge of the vertex and save the used colors in adjacent_colors array.
         for(int j = 0; j < size; j++) {
             // This is a neighbor
             if(edges[current_vert][j] == 1) {
@@ -146,7 +159,7 @@ int color_graph(char* dataset_name, int size, double* time_taken) {
             }
         }
 
-        // Find the least unused color and assign this vertex to it.
+        // Find the first unused color (starting from 0) and assign this vertex to it.
         for(int j = 0; j < size; j++) {
             if(!adjacent_colors[j]) {
                 colors[j][current_vert] = 1;
@@ -156,240 +169,109 @@ int color_graph(char* dataset_name, int size, double* time_taken) {
         }
     }
 
-    t = clock() - t; 
-    *time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds 
-    
-
-    if(!is_valid(size, edges, colors)) {
-        // printf("graph %s could not be colored.\n");
-        return 0;
-    }
- 
-    // printf("%s took %f seconds to finish, with %d colors.\n", dataset_name, time_taken, max_color); 
-
-    // for(int i = 0; i < max_color; i++) {
-    //     printf("color %d: ", i);
-    //     for(int j = 0; j < size; j++) 
-    //         if(colors[i][j]) printf("%d, ", j);
-    //     printf("\n");
-    // }
-
     return max_color;
+}
+
+void test_graph(int size, char* filename) {
+    unsigned int total_color, min_color, temp_color;
+    double total_time, temp_time, min_time, avg_time;
+    clock_t t;
+
+    char edges[size][size];
+    if(!init_graph(filename, size, edges)) {
+        printf("Could not initialize graph %s, exitting ...\n", filename);
+        return;
+    }
+
+    printf("Calculating 100 samples of %s:\n", filename);
+
+    int edge_count[size];
+    int max_edge_count = count_edges(size, edges, edge_count);
+    char colors[100][max_edge_count][size];
+    memset(colors, 0, size*max_edge_count*100);
+
+    min_color = -1;
+    min_time = DBL_MAX;
+    total_time = 0;
+    total_color = 0;
+    FILE* fresults;
+    char result_filename[128];
+    for (int i = 0; i < 100; i++) {
+        t = clock();
+        temp_color = color_graph(size, edges, colors[i]);
+        t = clock() - t;
+
+        temp_time = ((double)t)/CLOCKS_PER_SEC;
+
+        if(temp_color < min_color)
+            min_color = temp_color;
+
+        if(temp_time < min_time)
+            min_time = temp_time;
+
+        total_time += temp_time;
+        total_color += temp_color;
+
+        sprintf(result_filename, "results/%d_%s", i, &filename[15]);
+        fresults = fopen(result_filename, "w");
+        for(int j = 0; j < max_edge_count; j++) {
+            for(int k = 0; k < size; k++) {
+                if(colors[i][j][k]) 
+                    fprintf(fresults, "%d %d\n", j, k);
+            }
+        }
+        fclose(fresults);
+
+        print_progress(i + 1, 100);
+    }
+
+    printf("\n\ngraph %s:\n"\
+           "    coloring: avg  = %d\n"\
+           "              best = %d\n\n"\
+           "    time: avg  = %lf\n"\
+           "          best = %lf\n\n"
+           , filename, total_color/100, min_color, total_time/100, min_time);
 }
 
 
 int main() {
-    unsigned int min_color, temp_color;
-    double temp_time, min_time; 
+    const rlim_t kStackSize = 1024L * 1024L * 1024L;   // min stack size = 64 Mb
+    struct rlimit rl;
+    int result;
 
-    min_color = -1;
-    for (size_t i = 0; i < 10; i++) {
-        temp_color = color_graph("graph_datasets/C2000.5.col", 2000, &temp_time);
-        if(temp_color < min_color) {
-            min_time = temp_time;
-            min_color = temp_color;
+    result = getrlimit(RLIMIT_STACK, &rl);
+    if (result == 0)
+    {
+        if (rl.rlim_cur < kStackSize)
+        {
+            rl.rlim_cur = kStackSize;
+            result = setrlimit(RLIMIT_STACK, &rl);
+            if (result != 0)
+            {
+                fprintf(stderr, "setrlimit returned result = %d\n", result);
+            }
         }
-        printf("done,\n");
     }
-    printf("graph C2000.5 colored in %f seconds and with %d colors.\n", min_time, min_color);
 
-    // min_color = -1;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/C4000.5.col", 4000, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph C4000.5 colored in %f seconds and with %d colors.\n", min_time, min_color);
-
-    // min_color = 250;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/dsjc250.5.col", 250, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph dsjc250.5 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 500;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/dsjc500.1.col", 500, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph dsjc500.1 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 500;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/dsjc500.5.col", 500, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph dsjc500.5 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 500;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/dsjc500.9.col", 500, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph dsjc500.9 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 500;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/dsjc1000.1.col", 1000, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph dsjc1000.1 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 500;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/dsjc1000.5.col", 1000, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph dsjc1000.5 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 1000;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/dsjc1000.9.col", 1000, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph dsjc1000.9 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 500;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/dsjr500.1c.col", 500, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph dsjr500.1c colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 500;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/dsjr500.5.col", 500, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph dsjr500.5 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 300;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/flat300_28_0.col", 300, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph flat300_28_0 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 1000;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/flat1000_50_0.col", 1000, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph flat1000_50_0 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 1000;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/flat1000_60_0.col", 1000, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph flat1000_60_0 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 1000;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/flat1000_76_0.col", 1000, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph flat1000_76_0 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 900;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/latin_square.col", 900, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph latin_square colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 450;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/le450_25c.col", 450, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph le450_25c colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 450;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/le450_25d.col", 450, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph le450_25d colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 250;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/r250.5.col", 250, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph r250.5 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 1000;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/r1000.1c.col", 1000, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph r1000.1c colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
-
-    // min_color = 1000;
-    // for (size_t i = 0; i < 100; i++) {
-    //     temp_color = color_graph("graph_datasets/r1000.5.col", 1000, &temp_time);
-    //     if(temp_color < min_color) {
-    //         min_time = temp_time;
-    //         min_color = temp_color;
-    //     }
-    // }
-    // printf("graph r1000.5 colored in %f seconds and with %d colors.\n", (double)min_time, min_color);
+    test_graph(250, "graph_datasets/dsjc250.5.col");
+    test_graph(500, "graph_datasets/dsjc500.1.col");
+    test_graph(500, "graph_datasets/dsjc500.5.col");
+    test_graph(500, "graph_datasets/dsjc500.9.col");
+    test_graph(1000, "graph_datasets/dsjc1000.1.col");
+    test_graph(1000, "graph_datasets/dsjc1000.5.col");
+    test_graph(1000, "graph_datasets/dsjc1000.9.col");
+    test_graph(500, "graph_datasets/dsjr500.1c.col");
+    test_graph(500, "graph_datasets/dsjr500.5.col");
+    test_graph(300, "graph_datasets/flat300_28_0.col");
+    test_graph(1000, "graph_datasets/flat1000_50_0.col");
+    test_graph(1000, "graph_datasets/flat1000_60_0.col");
+    test_graph(1000, "graph_datasets/flat1000_76_0.col");
+    test_graph(900, "graph_datasets/latin_square.col");
+    test_graph(450, "graph_datasets/le450_25c.col");
+    test_graph(450, "graph_datasets/le450_25d.col");
+    test_graph(250, "graph_datasets/r250.5.col");
+    test_graph(1000, "graph_datasets/r1000.1c.col");
+    test_graph(1000, "graph_datasets/r1000.5.col");
+    test_graph(2000, "graph_datasets/C2000.5.col");
+    test_graph(4000, "graph_datasets/C4000.5.col");
 }
