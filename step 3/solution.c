@@ -49,10 +49,9 @@ bool init_graph(char* filename, int size, char edges[][size]) {
     int i;
     while(!feof(fp)) {
         fgets(buffer, 64, fp);
-        buffer[strlen(buffer) - 1] = 0;
+        buffer[strcspn(buffer, "\n")] = 0;
         
         token1 = strtok (buffer, " ");
-        if(token1 == NULL) break;
         row = atoi(token1) - 1;
         
         token2 = strtok (NULL, " ");
@@ -122,7 +121,6 @@ int count_edges(int size, const char edges[][size], int count[]) {
 
 int color_graph(int size, const char edges[][size], char colors[][size]) {
     // Create a random queue of vertices to propagate.
-    srand(time(0));
     int prob_queue[size];
     int i = 0;
     while (i < size) {
@@ -302,7 +300,6 @@ void print_colors(char *graph_name, int max_color_num, int size, char colors[][s
 }
 
 void test_graph(int size, char* filename) {
-
     char edges[size][size];
     if(!init_graph(filename, size, edges)) {
         printf("Could not initialize graph %s, exitting ...\n", filename);
@@ -311,6 +308,8 @@ void test_graph(int size, char* filename) {
 
     printf("Testing the dataset %s:\n", filename);
 
+    int s, numb;
+    FILE *f;
 
     clock_t t;
     int edge_count[size];
@@ -320,12 +319,17 @@ void test_graph(int size, char* filename) {
     char child[max_edge_count][size];
     FILE* fresults;
     char result_filename[128];
-    int child_colors, parent1, parent2, best_child, temp_color, best;
+    int child_colors, parent1, parent2, temp_color, best = 0, best_child = 0, best_base = 0;
     float progress = 1, total_time = 0;
+    print_progress(progress, 22000);
     for(int k = 0; k < 20; k++) {
-        t = clock();
-
+        f = fopen("/dev/urandom", "rb");
+        fread(&s, sizeof(int), 1, f);
+        fclose(f);
+        srand(s);
         memset(colors, 0, size*max_edge_count*100);
+
+        t = clock();
 
         best = 0;
         for (int i = 0; i < 100; i++) {
@@ -333,6 +337,9 @@ void test_graph(int size, char* filename) {
 
             if(color_count[best] > color_count[i])
                 best = i;
+
+            if(color_count[best_base] > color_count[i])
+                best_base = i;
 
             progress++;
             print_progress(progress, 22000);
@@ -390,18 +397,19 @@ void test_graph(int size, char* filename) {
     }
 
 
-    if(is_valid(size, edges, color_count[best_child], colors[best_child])) {
+    if(is_valid(size, edges, color_count[best], colors[best])) {
         printf("\n\ngraph %s:\n"\
-            "    coloring: best solution = %d\n"\
+            "    coloring: best overall solution = %d\n"\
+            "              best base solution = %d\n"\
             "              best child solution = %d\n\n"\
             "    time: avg  = %lf\n\n"
-            , filename, color_count[best], color_count[best_child], total_time/20);
+            , filename, color_count[best], color_count[best_base], color_count[best_child], total_time/20);
     }
 }
 
 
 int main() {
-    const rlim_t kStackSize = 1024L * 1024L * 1024L;   // min stack size = 64 Mb
+    const rlim_t kStackSize = 2048L * 1024L * 1024L;   // min stack size = 64 Mb
     struct rlimit rl;
     int result;
 
@@ -422,7 +430,7 @@ int main() {
 
     test_graph(138, "graph_datasets/anna.col");
     test_graph(87, "graph_datasets/david.col");
-    test_graph(561, "graph_datasets/homer.col");
+    // test_graph(561, "graph_datasets/homer.col");
     test_graph(74, "graph_datasets/huck.col");
     test_graph(80, "graph_datasets/jean.col");
 
@@ -479,7 +487,7 @@ int main() {
     test_graph(185, "graph_datasets/mulsol.i.4.col");
     test_graph(186, "graph_datasets/mulsol.i.5.col");
 
-    test_graph(5, "graph_datasets/myciel2.col");
+    // test_graph(5, "graph_datasets/myciel2.col");
     test_graph(11, "graph_datasets/myciel3.col");
     test_graph(23, "graph_datasets/myciel4.col");
     test_graph(47, "graph_datasets/myciel5.col");
@@ -504,8 +512,8 @@ int main() {
     test_graph(1000, "graph_datasets/r1000.1c.col");
     test_graph(1000, "graph_datasets/r1000.5.col");
 
-    test_graph(385, "graph_datasets/school1_nsh.col");
-    test_graph(352, "graph_datasets/school1.col");
+    test_graph(352, "graph_datasets/school1_nsh.col");
+    test_graph(385, "graph_datasets/school1.col");
 
     test_graph(211, "graph_datasets/zeroin.i.1.col");
     test_graph(211, "graph_datasets/zeroin.i.2.col");
