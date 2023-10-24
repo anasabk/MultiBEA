@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
         pthread_create(&temp, &attr, test_graph, temp_param);
         // test_graph(temp_param);
 
-        while (thread_count == 4);
+        while (thread_count == 7);
     }
 
 
