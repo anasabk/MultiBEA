@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    const rlim_t kStackSize = 2048L * 1024L * 1024L;   // min stack size = 64 Mb
+    const rlim_t kStackSize = 8192L * 1024L * 1024L;   // min stack size = 64 Mb
     struct rlimit rl;
     int result;
 
@@ -115,9 +115,14 @@ int main(int argc, char *argv[]) {
     thread_count = 0;
 
     FILE *test_list = fopen(argv[1], "r");
-    struct test_param *temp_param;
+    
+    pthread_attr_t attr;
     pthread_t temp;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 1024L*1024L*1024L);
+
     char buffer[256];
+    struct test_param *temp_param;
     while(!feof(test_list)) {
         temp_param = malloc(sizeof(struct test_param));
 
@@ -129,11 +134,11 @@ int main(int argc, char *argv[]) {
         strcpy(temp_param->graph_filename, strtok(NULL, " "));
         strcpy(temp_param->result_filename, strtok(NULL, " "));
 
-        pthread_create(&temp, NULL, test_graph, temp_param);
+        pthread_create(&temp, &attr, test_graph, temp_param);
         // test_graph(temp_param);
-    }
 
-    while (thread_count > 0);
+        while (thread_count == 4);
+    }
 
 
     // test_graph(138, "graph_datasets/anna.col");

@@ -46,16 +46,16 @@ bool init_graph(char* filename, int size, char edges[][size]) {
     memset(edges, 0, size*size);
 
     char buffer[64];
-    char* token1, *token2;
+    char* token1, *token2, *saveptr;
     int row, column;
     while(!feof(fp)) {
         fgets(buffer, 64, fp);
         buffer[strcspn(buffer, "\n")] = 0;
         
-        token1 = strtok (buffer, " ");
+        token1 = strtok_r (buffer, " ", &saveptr);
         row = atoi(token1) - 1;
         
-        token2 = strtok (NULL, " ");
+        token2 = strtok_r (NULL, " ", &saveptr);
         column = atoi(token2) - 1;
         
         edges[row][column] = 1;
