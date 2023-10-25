@@ -16,6 +16,7 @@
 
 struct test_param {
     int size;
+    int target_color;
     char graph_filename[128];
     char result_filename[128];
 };
@@ -25,6 +26,7 @@ atomic_int thread_count;
 
 void* test_graph(void *param) {
     int size = ((struct test_param*)param)->size;
+    int target_color = ((struct test_param*)param)->target_color;
     char *graph_filename = ((struct test_param*)param)->graph_filename;
     char *result_filename = ((struct test_param*)param)->result_filename;
 
@@ -47,7 +49,7 @@ void* test_graph(void *param) {
     clock_t t;
     float progress = 0, total_time = 0;
     int best_color_num = __INT_MAX__, temp_color_num;
-    // print_progress(progress, 20);
+    print_progress(progress, 20);
     for(int k = 0; k < 20; k++) {
         memset(temp_colors, 0, max_edge_count*size);
 
@@ -57,7 +59,8 @@ void* test_graph(void *param) {
             edges,
             edge_count,
             max_edge_count,
-            temp_colors
+            temp_colors,
+            target_color
         );
         t = clock() - t;
         total_time += ((double)t)/CLOCKS_PER_SEC;
@@ -67,8 +70,8 @@ void* test_graph(void *param) {
             memcpy(best_colors, temp_colors, max_edge_count*size);
         }
 
-        // progress++;
-        // print_progress(progress, 20);
+        progress++;
+        print_progress(progress, 20);
     }
 
     if(is_valid(size, edges, best_color_num, best_colors)) {
@@ -119,26 +122,29 @@ int main(int argc, char *argv[]) {
     pthread_attr_t attr;
     pthread_t temp;
     pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, 1024L*1024L*1024L);
+    pthread_attr_setstacksize(&attr, 2048L*1024L*1024L);
 
     char buffer[256];
     struct test_param *temp_param;
-    while(!feof(test_list)) {
+    // while(!feof(test_list)) {
         temp_param = malloc(sizeof(struct test_param));
 
         thread_count++;
         fgets(buffer, 256, test_list);
         buffer[strcspn(buffer, "\n")] = 0;
 
-        temp_param->size = atoi(strtok(buffer, " "));
+        temp_param->target_color = atoi(strtok(buffer, " "));
+        temp_param->size = atoi(strtok(NULL, " "));
         strcpy(temp_param->graph_filename, strtok(NULL, " "));
         strcpy(temp_param->result_filename, strtok(NULL, " "));
 
-        pthread_create(&temp, &attr, test_graph, temp_param);
-        // test_graph(temp_param);
+        // pthread_create(&temp, &attr, test_graph, temp_param);
+        test_graph(temp_param);
 
-        while (thread_count == 7);
-    }
+        // while (thread_count == 7);
+    // }
+
+    fclose(test_list);
 
 
     // test_graph(138, "graph_datasets/anna.col");

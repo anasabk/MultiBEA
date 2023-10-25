@@ -67,10 +67,8 @@ bool init_graph(char* filename, int size, char edges[][size]) {
 }
 
 bool is_valid(int size, const char edges[size][size], int color_num, const char colors[color_num][size]) {
-    int i, j, k;
-    // Scan for vertices with multiple colors.
-    int is_colored;
     // Iterate through vertices.
+    int i, j, k, is_colored;
     for(i = 0; i < size; i++) {
         is_colored = 0;
         // Iterate through colors and look for the vertex.
@@ -179,33 +177,57 @@ int greedy_color(int size, const char edges[][size], char colors[][size], int ma
     return max_color + 1;
 }
 
-int genetic_color(int size, char edges[][size], int edge_count[size], int max_edge_count, char result_colors[][size]) {
+void random_color(int size, const char edges[][size], char colors[][size], int color_target) {
+    for(int i = 0; i < size; i++)
+        colors[rand()%color_target][i] = 1;
+}
+
+int genetic_color(int size, char edges[][size], int edge_count[size], int max_edge_count, char result_colors[][size], int color_target) {
+    int best = 0, best_child = 0, best_base = 0;
+    // for (i = 0; i < 10; i++) {
+    //     color_count[i] = greedy_color(size, edges, colors[i], max_edge_count);
+
+    //     if(color_count[best] > color_count[i])
+    //         best = i;
+
+    //     if(color_count[best_base] > color_count[i])
+    //         best_base = i;
+
+    //     // is_valid(size, edges, color_count[i], colors[i]);
+    // }
+
+    int fitness[100];
     int color_count[100];
     char colors[100][max_edge_count][size];
-    memset(colors, 0, size*max_edge_count*100);
+    // int color_target = greedy_color(size, edges, colors[0], max_edge_count);
 
-    int best = 0, best_child = 0, best_base = 0;
-    for (int i = 0; i < 100; i++) {
-        color_count[i] = greedy_color(size, edges, colors[i], max_edge_count);
+    memset(colors, 0, 100*max_edge_count*size);
+    memset(fitness, 0, 100*sizeof(int));
 
-        if(color_count[best] > color_count[i])
-            best = i;
+    int i, j, k, h;
+    for (i = 0; i < 100; i++) {
+        color_count[i] = color_target;
+        random_color(size, edges, colors[i], color_target);
 
-        if(color_count[best_base] > color_count[i])
-            best_base = i;
+        for(j = 0; j < color_target; j++)
+            for(k = 0; k < size; k++) 
+                if(colors[i][j][k])
+                    for(h = k + 1; h < size; h++)
+                        if(colors[i][j][h] && edges[h][k])
+                            fitness[i] += 1;
 
         // is_valid(size, edges, color_count[i], colors[i]);
     }
 
     char child[max_edge_count][size];
-    int parent1, parent2, child_colors;
-    for(int i = 0; i < 1000; i++) {
+    int parent1, parent2, child_colors, temp_fitness;
+    for(i = 0; i < 1000; i++) {
         memset(child, 0, size*max_edge_count);
 
         parent1 = rand()%100;
         do { parent2 = rand()%100; } while (parent1 == parent2);
 
-        child_colors = crossover(
+        temp_fitness = crossover(
             size, 
             edges, 
             edge_count,
@@ -214,23 +236,29 @@ int genetic_color(int size, char edges[][size], int edge_count[size], int max_ed
             colors[parent1], 
             colors[parent2], 
             child, 
-            max_edge_count
+            color_target,
+            &child_colors
         );
 
-        if(child_colors <= color_count[parent1]) {
+        if(temp_fitness == 0) {
+            memcpy(result_colors, child, size*max_edge_count);
+            return child_colors;
+
+        } else if (child_colors <= color_count[parent1] && temp_fitness <= fitness[parent1]) {
             memcpy(colors[parent1], child, size*max_edge_count);
             color_count[parent1] = child_colors;
-
+            fitness[parent1] = temp_fitness;
 
             if(color_count[best] > child_colors)
-                best = parent2;
+                best = parent1;
 
             if(color_count[best_child] > child_colors)
-                best_child = parent2;
+                best_child = parent1;
 
-        } else if(child_colors <= color_count[parent2]) {
-            color_count[parent2] = child_colors;
+        } else if (child_colors == color_count[parent2] && temp_fitness <= fitness[parent2]) {
             memcpy(colors[parent2], child, size*max_edge_count);
+            color_count[parent2] = child_colors;
+            fitness[parent2] = temp_fitness;
 
             if(color_count[best] > child_colors)
                 best = parent2;
@@ -238,11 +266,10 @@ int genetic_color(int size, char edges[][size], int edge_count[size], int max_ed
             if(color_count[best_child] > child_colors)
                 best_child = parent2;
         }
-
-        // is_valid(size, edges, child_colors, child);
     }
 
     memcpy(result_colors, colors[best], size*max_edge_count);
 
+    is_valid(size, edges, color_count[best], colors[best]);
     return color_count[best];
 }

@@ -12,4 +12,4 @@ int greedy_color(int size, const char edges[][size], char colors[][size], int ma
 
 void print_colors(char *filename, char *header, int max_color_num, int size, char colors[][size]);
 
-int genetic_color(int size, char edges[][size], int edge_count[size], int max_edge_count, char result_colors[][size]);
+int genetic_color(int size, char edges[][size], int edge_count[size], int max_edge_count, char result_colors[][size], int color_target);

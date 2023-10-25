@@ -1,0 +1,16 @@
+graph resources/graph_datasets/goodgraph.col:
+    best solution = 3
+
+    time: avg  = 0.000116
+
+
+0 1
+0 7
+0 9
+1 4
+1 6
+1 8
+1 10
+2 2
+2 3
+2 5

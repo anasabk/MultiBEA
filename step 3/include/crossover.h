@@ -6,7 +6,8 @@ void merge_colors(
     char child_color[],
     char pool[],
     int *pool_total,
-    char used_vertex_list[]
+    char used_vertex_list[],
+    int *used_vertex_count
 );
 
 void fix_conflicts(
@@ -26,6 +27,7 @@ int crossover(
     int color_num2, 
     const char parent1[][size], 
     const char parent2[][size], 
-    char child[][size], 
-    int max_color_possible
+    char child[][size],
+    int target_color_count,
+    int *child_color_count
 );
