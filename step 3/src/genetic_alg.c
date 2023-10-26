@@ -249,10 +249,10 @@ int genetic_color(int size, char edges[][size], int edge_count[size], int max_ed
             color_count[parent1] = child_colors;
             fitness[parent1] = temp_fitness;
 
-            if(color_count[best] > child_colors)
+            if(color_count[best] >= child_colors && fitness[best] >= temp_fitness)
                 best = parent1;
 
-            if(color_count[best_child] > child_colors)
+            if(color_count[best_child] >= child_colors && fitness[best_child] >= temp_fitness)
                 best_child = parent1;
 
         } else if (child_colors == color_count[parent2] && temp_fitness <= fitness[parent2]) {
@@ -260,16 +260,16 @@ int genetic_color(int size, char edges[][size], int edge_count[size], int max_ed
             color_count[parent2] = child_colors;
             fitness[parent2] = temp_fitness;
 
-            if(color_count[best] > child_colors)
+            if(color_count[best] >= child_colors && fitness[best] >= temp_fitness)
                 best = parent2;
 
-            if(color_count[best_child] > child_colors)
+            if(color_count[best_child] >= child_colors && fitness[best_child] >= temp_fitness)
                 best_child = parent2;
         }
     }
 
     memcpy(result_colors, colors[best], size*max_edge_count);
 
-    is_valid(size, edges, color_count[best], colors[best]);
+    // is_valid(size, edges, color_count[best], colors[best]);
     return color_count[best];
 }

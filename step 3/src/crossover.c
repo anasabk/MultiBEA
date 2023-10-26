@@ -43,9 +43,8 @@ void merge_colors(
     char used_vertex_list[],
     int *used_vertex_count
 ) {
-    // Fill a color in the child.
-    for(int i = 0; i < size; i++) {  // i = index of a vertex.
-        if(!used_vertex_list[i]) {
+    for(int i = 0; i < size; i++) {  // for every vertex
+        if(!used_vertex_list[i]) { // if vertex is unused
             if(parent_color[0] != NULL) {
                 child_color[i] |= parent_color[0][i];
             }
@@ -56,9 +55,8 @@ void merge_colors(
 
             used_vertex_list[i] |= child_color[i];
             (*used_vertex_count) += child_color[i];
-        }
 
-        if(pool[i]) {
+        } else if(pool[i]) {   // if vertex is in the pool
             child_color[i] |= pool[i];
             *pool_total -= pool[i];
             pool[i] = 0;
@@ -92,7 +90,7 @@ void fix_conflicts(
     int *pool_total
 ) {
     int conflict_count[size];
-    memset(conflict_count, 0, size);
+    memset(conflict_count, 0, size*sizeof(int));
 
     // Check for any conflicts.
     int total_conflicts = count_conflicts(
@@ -117,6 +115,7 @@ void fix_conflicts(
         }
 
         child_color[max_conflict_vert] = 0;
+        total_conflicts -= conflict_count[max_conflict_vert];
         conflict_count[max_conflict_vert] = 0;
         pool[max_conflict_vert] = 1;
         (*pool_total)++;
@@ -124,7 +123,7 @@ void fix_conflicts(
         for(i = 0; i < size; i++){
             if(edges[max_conflict_vert][i] && child_color[i]) {
                 conflict_count[i] -= 1;
-                total_conflicts -= 2;
+                total_conflicts--;
             }
         }
     }
@@ -188,7 +187,7 @@ int crossover(
             used_vertex_list,
             &used_vertex_count
         );
-        pool_total = 0;
+        // pool_total = 0;
 
 
 /*--------------------------------------  Resolve the conflicts and fill the pool accordingly  --------------------------------------*/
@@ -229,10 +228,10 @@ int crossover(
                 pool_age[i] = 0;
         }
 
-        last_color = child_color;
+        // last_color = child_color + 1;
     }
 
-    *child_color_count = last_color + 1;
+    last_color = child_color;
 
 
 /*------------------------  Randomly merge vertices in the pool with colors and calculate the fitness value  ------------------------*/
@@ -252,15 +251,16 @@ int crossover(
                     temp_count
                 );
 
-                if(color_num > last_color)
-                    last_color = color_num;
+                if(color_num + 1 > last_color)
+                    last_color = color_num + 1;
             }
         }
 
-        *child_color_count = last_color + 1;
+        *child_color_count = last_color;
         return fitness;
 
     } else {
+        *child_color_count = last_color;
         return 0;
     }
 }
