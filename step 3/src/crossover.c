@@ -142,6 +142,7 @@ int crossover(
     int *child_color_count) 
 {
     int max_color_num = color_num1 > color_num2 ? color_num1 : color_num2;
+    int max_iter_num = max_color_num > target_color_count ? max_color_num : target_color_count;
 
     char used_color_list[2][max_color_num];
     memset(used_color_list, 0, 2*max_color_num);
@@ -160,13 +161,13 @@ int crossover(
 
     char const *parent_color_p[2];
     int color1, color2, last_color = 0;
-    int i, j, child_color;
-    for(child_color = 0; (child_color < target_color_count && pool_total > 0) || used_vertex_count < size; child_color++) { // child_color = number of colors used, the index of the current color in the child.
+    int i, j, k, child_color;
+    for(i = 0; i < max_iter_num && (pool_total > 0 || used_vertex_count < size); i++) { // child_color = number of colors used, the index of the current color in the child.
 /*---------------------------------------  Merge the two colors and the pool in he new color  ---------------------------------------*/
 
         // Pick 2 random colors.
-        color1 = get_rand_color(color_num1, child_color, used_color_list[0]);
-        color2 = get_rand_color(color_num2, child_color, used_color_list[1]);
+        color1 = get_rand_color(color_num1, i, used_color_list[0]);
+        color2 = get_rand_color(color_num2, i, used_color_list[1]);
 
         if(color1 == -1)
             parent_color_p[0] = NULL;
@@ -178,66 +179,93 @@ int crossover(
         else
             parent_color_p[1] = parent2[color2];
 
-        merge_colors(
-            size,
-            parent_color_p,
-            child[child_color],
-            pool,
-            &pool_total,
-            used_vertex_list,
-            &used_vertex_count
-        );
-        // pool_total = 0;
+        if(i < target_color_count) {
+            child_color = i;
+
+            merge_colors(
+                size,
+                parent_color_p,
+                child[child_color],
+                pool,
+                &pool_total,
+                used_vertex_list,
+                &used_vertex_count
+            );
 
 
 /*--------------------------------------  Resolve the conflicts and fill the pool accordingly  --------------------------------------*/
 
-        fix_conflicts(
-            size,
-            edges,
-            num_of_edges,
-            child[child_color],
-            pool,
-            &pool_total
-        );
+            fix_conflicts(
+                size,
+                edges,
+                num_of_edges,
+                child[child_color],
+                pool,
+                &pool_total
+            );
+
+        } else if(used_vertex_count < size) {
+            if(parent_color_p[0] != NULL && parent_color_p[1] != NULL) {
+                for(j = 0; j < size; j++) {
+                    if(!used_vertex_list[j] && (parent_color_p[0][j] | parent_color_p[1][j])) {
+                        pool[j] = 1;
+                        pool_total += 1;
+                        used_vertex_list[j] = 1;
+                        used_vertex_count++;
+                    }
+                }
+            
+            } else if((parent_color_p[0] == NULL) != (parent_color_p[1] == NULL)) {
+                const char* parent = parent_color_p[0] > parent_color_p[1] ? parent_color_p[0] : parent_color_p[1];
+                for(j = 0; j < size; j++) {
+                    if(!used_vertex_list[j] && parent[j]) {
+                        pool[j] = 1;
+                        pool_total += 1;
+                        used_vertex_list[j] = 1;
+                        used_vertex_count++;
+                    }
+                }
+            }
+        }
 
 
 /*------------------------------------------  Try to merge the pool with previous colors  -------------------------------------------*/
 
-        for(i = 0; i < size && pool_total > 0; i++) {
-            for(j = pool_age[i]; j < child_color && pool[i]; j++) {
-                child[j][i] = 1;
-                pool[i] = 0;
+        for(j = 0; j < size && pool_total > 0; j++) {
+            for(k = pool_age[j]; k < child_color && pool[j]; k++) {
+                child[k][j] = 1;
+                pool[j] = 0;
                 pool_total--;
 
                 fix_conflicts(
                     size,
                     edges,
                     num_of_edges,
-                    child[j],
+                    child[k],
                     pool,
                     &pool_total
                 );
             }
         }
 
-        for(i = 0; i < size; i++) {
-            if(pool[i])
-                pool_age[i]++;
+        for(j = 0; j < size; j++) {
+            if(pool[j])
+                pool_age[j]++;
             else
-                pool_age[i] = 0;
+                pool_age[j] = 0;
         }
 
         // last_color = child_color + 1;
     }
 
-    last_color = child_color;
+    last_color = child_color + 1;
 
 
 /*------------------------  Randomly merge vertices in the pool with colors and calculate the fitness value  ------------------------*/
 
+    int fitness = 0;
     if(pool_total > 0) {
-        int fitness = 0, color_num;
+        int color_num;
         int temp_count[size];
         for(i = 0; i < size; i++) {
             if(pool[i]) {
@@ -256,11 +284,11 @@ int crossover(
             }
         }
 
-        *child_color_count = last_color;
-        return fitness;
-
     } else {
-        *child_color_count = last_color;
-        return 0;
+        fitness = 0;
     }
+
+
+    *child_color_count = last_color;
+    return fitness;
 }

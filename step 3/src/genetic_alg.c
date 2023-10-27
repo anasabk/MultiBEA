@@ -182,7 +182,7 @@ void random_color(int size, const char edges[][size], char colors[][size], int c
         colors[rand()%color_target][i] = 1;
 }
 
-int genetic_color(int size, char edges[][size], int edge_count[size], int max_edge_count, char result_colors[][size], int color_target) {
+int genetic_color(int size, char edges[][size], int edge_count[size], int max_edge_count, char result_colors[][size]) {
     int best = 0, best_child = 0, best_base = 0;
     // for (i = 0; i < 10; i++) {
     //     color_count[i] = greedy_color(size, edges, colors[i], max_edge_count);
@@ -199,7 +199,7 @@ int genetic_color(int size, char edges[][size], int edge_count[size], int max_ed
     int fitness[100];
     int color_count[100];
     char colors[100][max_edge_count][size];
-    // int color_target = greedy_color(size, edges, colors[0], max_edge_count);
+    int color_target = greedy_color(size, edges, colors[0], max_edge_count);
 
     memset(colors, 0, 100*max_edge_count*size);
     memset(fitness, 0, 100*sizeof(int));
@@ -221,7 +221,7 @@ int genetic_color(int size, char edges[][size], int edge_count[size], int max_ed
 
     char child[max_edge_count][size];
     int parent1, parent2, child_colors, temp_fitness;
-    for(i = 0; i < 1000; i++) {
+    for(i = 0; i < 5000; i++) {
         memset(child, 0, size*max_edge_count);
 
         parent1 = rand()%100;
@@ -241,10 +241,12 @@ int genetic_color(int size, char edges[][size], int edge_count[size], int max_ed
         );
 
         if(temp_fitness == 0) {
-            memcpy(result_colors, child, size*max_edge_count);
-            return child_colors;
-
-        } else if (child_colors <= color_count[parent1] && temp_fitness <= fitness[parent1]) {
+            // memcpy(result_colors, child, size*max_edge_count);
+            // return temp_fitness;
+            color_target--;
+        }
+        
+        if (child_colors <= color_count[parent1] && temp_fitness <= fitness[parent1]) {
             memcpy(colors[parent1], child, size*max_edge_count);
             color_count[parent1] = child_colors;
             fitness[parent1] = temp_fitness;
@@ -271,5 +273,5 @@ int genetic_color(int size, char edges[][size], int edge_count[size], int max_ed
     memcpy(result_colors, colors[best], size*max_edge_count);
 
     // is_valid(size, edges, color_count[best], colors[best]);
-    return color_count[best];
+    return fitness[best];
 }

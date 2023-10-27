@@ -1,16 +1,15 @@
-graph resources/graph_datasets/goodgraph.col:
     best solution = 3
+    time: avg  = 0.001951
 
-    time: avg  = 0.000116
 
 
-0 1
+0 2
+0 3
 0 7
-0 9
-1 4
-1 6
+0 10
+1 1
+1 5
 1 8
-1 10
-2 2
-2 3
-2 5
+1 9
+2 4
+2 6

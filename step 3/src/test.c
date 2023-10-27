@@ -23,6 +23,7 @@ struct test_param {
 
 
 atomic_int thread_count;
+atomic_int reading;
 
 void* test_graph(void *param) {
     int size = ((struct test_param*)param)->size;
@@ -30,11 +31,16 @@ void* test_graph(void *param) {
     char *graph_filename = ((struct test_param*)param)->graph_filename;
     char *result_filename = ((struct test_param*)param)->result_filename;
 
+    while (reading > 0);
+    reading++;
+    
     char edges[size][size];
     if(!init_graph(graph_filename, size, edges)) {
         printf("Could not initialize graph %s, exitting ...\n", graph_filename);
         return NULL;
     }
+
+    reading--;
 
     printf("Testing the dataset %s:\n", graph_filename);
 
@@ -48,41 +54,46 @@ void* test_graph(void *param) {
 
     clock_t t;
     float progress = 0, total_time = 0;
-    int best_color_num = __INT_MAX__, temp_color_num;
-    print_progress(progress, 20);
+    int best_fitness = __INT_MAX__, temp_fitness;
+    // print_progress(progress, 20);
     for(int k = 0; k < 20; k++) {
         memset(temp_colors, 0, max_edge_count*size);
 
         t = clock();
-        temp_color_num = genetic_color(
+        temp_fitness = genetic_color(
             size,
             edges,
             edge_count,
             max_edge_count,
-            temp_colors,
-            target_color
+            temp_colors
+            // target_color
         );
         t = clock() - t;
         total_time += ((double)t)/CLOCKS_PER_SEC;
 
-        if(temp_color_num < best_color_num) {
-            best_color_num = temp_color_num;
+        if(temp_fitness < best_fitness) {
+            best_fitness = temp_fitness;
             memcpy(best_colors, temp_colors, max_edge_count*size);
         }
 
-        progress++;
-        print_progress(progress, 20);
+        // progress++;
+        // print_progress(progress, 20);
     }
 
-    if(is_valid(size, edges, best_color_num, best_colors)) {
+    printf("\ngraph %s:\n", graph_filename);
+    if(is_valid(size, edges, target_color, best_colors)) {
         char buffer[256];
-        sprintf(buffer, 
-            "graph %s:\n"\
-            "    best solution = %d\n\n"\
-            "    time: avg  = %lf\n"
-            , graph_filename, best_color_num, total_time/20);
+        sprintf(buffer,
+            "    best solution = %d\n"\
+            "    time: avg  = %lf\n\n"
+            , target_color, total_time/20);
 
-        print_colors(result_filename, buffer, best_color_num, size, best_colors);
+        printf("%s", buffer);
+
+        print_colors(result_filename, buffer, target_color, size, best_colors);
+
+    } else {
+        printf("    Could not find a solution, best fitness is %d.\n\n", best_fitness);
     }
 
     free(param);
@@ -116,6 +127,7 @@ int main(int argc, char *argv[]) {
     }
 
     thread_count = 0;
+    reading = 0;
 
     FILE *test_list = fopen(argv[1], "r");
     
@@ -126,7 +138,7 @@ int main(int argc, char *argv[]) {
 
     char buffer[256];
     struct test_param *temp_param;
-    // while(!feof(test_list)) {
+    while(!feof(test_list)) {
         temp_param = malloc(sizeof(struct test_param));
 
         thread_count++;
@@ -141,8 +153,10 @@ int main(int argc, char *argv[]) {
         // pthread_create(&temp, &attr, test_graph, temp_param);
         test_graph(temp_param);
 
-        // while (thread_count == 7);
-    // }
+        // while (thread_count == 10);
+    }
+
+    // while (thread_count > 0);
 
     fclose(test_list);
 
