@@ -4,8 +4,7 @@ For each of the datasets below, 100 solutions were calculated and the best resul
 
 Example datasets used are in the [link](https://cedric.cnam.fr/~porumbed/graphs/).
 
-|              |                    |            |                    My Algorithm                    |       InCEA          |
-| Dataset Name | Number of vertices | Upperbound | Base k | Best k | Avg k | Best k Time | Avg k Time | best k | Best k Time |
+| Dataset Name | Number of vertices | Upperbound | Base k | Best k | Avg k | Best k Time | Avg k Time | InCEA best k | InCEA Best k Time |
 | ------------ | ------------------ | ---------- | ------ | ------ | ----- | ----------- | ---------- | ------ | ----------- |
 | myciel5      | 47                 | 6          | 21     | 6      | 6     | 0.034996    | 0.079256   | 6      | 4           |
 | myciel6      | 95                 | 7          | 8      | 7      | 7     | 0.104587    | 0.264962   | 7      | 18          |
