@@ -12,6 +12,7 @@
 #include <stdatomic.h>
 
 #include "genetic_alg.h"
+#include "stdgraph.h"
 
 
 struct test_param {
@@ -27,74 +28,86 @@ atomic_int reading;
 
 void* test_graph(void *param) {
     int size = ((struct test_param*)param)->size;
-    int target_color = ((struct test_param*)param)->target_color;
     char *graph_filename = ((struct test_param*)param)->graph_filename;
     char *result_filename = ((struct test_param*)param)->result_filename;
 
-    while (reading > 0);
-    reading++;
-    
     char edges[size][size];
     if(!init_graph(graph_filename, size, edges)) {
         printf("Could not initialize graph %s, exitting ...\n", graph_filename);
+        free(param);
+        thread_count--;
         return NULL;
     }
 
-    reading--;
+    srand(time(NULL));
 
     printf("Testing the dataset %s:\n", graph_filename);
-
-    srand(time(NULL));
 
     int edge_count[size];
     const int max_edge_count = count_edges(size, edges, edge_count);
 
-    char temp_colors[max_edge_count][size], best_colors[max_edge_count][size];
+    float best_time = FLT_MAX, temp_time, total_time = 0;
+    int best_fitness = __INT_MAX__, temp_fitness, total_fitness = 0;
+    int best_color_count = __INT_MAX__, temp_color_count, total_color_count = 0;
+    char best_colors[max_edge_count][size], temp_colors[max_edge_count][size];
     memset(best_colors, 0, max_edge_count*size);
 
-    clock_t t;
-    float progress = 0, total_time = 0;
-    int best_fitness = __INT_MAX__, temp_fitness;
-    // print_progress(progress, 20);
-    for(int k = 0; k < 20; k++) {
+    int greedy_color_count = graph_color_greedy(size, edges, temp_colors, max_edge_count);
+
+    for(int k = 0; k < 5; k++) {
         memset(temp_colors, 0, max_edge_count*size);
 
-        t = clock();
-        temp_fitness = genetic_color(
+        graph_color_genetic(
             size,
             edges,
-            edge_count,
-            max_edge_count,
-            temp_colors
-            // target_color
+            greedy_color_count,
+            30000,
+            temp_colors,
+            &temp_color_count,
+            &temp_fitness,
+            &temp_time
         );
-        t = clock() - t;
-        total_time += ((double)t)/CLOCKS_PER_SEC;
 
-        if(temp_fitness < best_fitness) {
+        total_color_count += temp_color_count;
+        total_fitness += temp_fitness;
+        total_time += temp_time;
+
+        if(temp_fitness <= best_fitness && temp_color_count <= best_color_count) {
+            best_color_count = temp_color_count;
             best_fitness = temp_fitness;
+            best_time = temp_time;
             memcpy(best_colors, temp_colors, max_edge_count*size);
         }
-
-        // progress++;
-        // print_progress(progress, 20);
     }
 
-    printf("\ngraph %s:\n", graph_filename);
-    if(is_valid(size, edges, target_color, best_colors)) {
-        char buffer[256];
+    char buffer[512];
+    if(is_valid(size, edges, greedy_color_count, best_colors)) {
         sprintf(buffer,
-            "    best solution = %d\n"\
-            "    time: avg  = %lf\n\n"
-            , target_color, total_time/20);
+            "\ngraph %s:\n"\
+            "    base color: %d\n"\
+            "    best solution:\n"\
+            "        time    = %lf\n"\
+            "        colors  = %d\n"\
+            "    avg values:\n"\
+            "        time    = %lf\n"\
+            "        colors  = %f\n",
+            graph_filename, 
+            greedy_color_count,
+            best_time, best_color_count,
+            total_time/5, total_color_count/5.0
+        );
 
-        printf("%s", buffer);
-
-        print_colors(result_filename, buffer, target_color, size, best_colors);
+        print_colors(result_filename, buffer, greedy_color_count, size, best_colors);
 
     } else {
-        printf("    Could not find a solution, best fitness is %d.\n\n", best_fitness);
+        sprintf(buffer, 
+            "\ngraph %s:\n"\
+            "Could not find a solution. Base color: %d / Best fitness: %d.\n", 
+            graph_filename, greedy_color_count, best_fitness
+        );
     }
+
+    printf("%s\n", buffer);
 
     free(param);
     thread_count--;
@@ -129,7 +142,7 @@ int main(int argc, char *argv[]) {
     thread_count = 0;
     reading = 0;
 
-    FILE *test_list = fopen(argv[1], "r");
+    FILE *test_list_file = fopen(argv[1], "r");
     
     pthread_attr_t attr;
     pthread_t temp;
@@ -138,120 +151,24 @@ int main(int argc, char *argv[]) {
 
     char buffer[256];
     struct test_param *temp_param;
-    while(!feof(test_list)) {
+    while(!feof(test_list_file)) {
         temp_param = malloc(sizeof(struct test_param));
 
         thread_count++;
-        fgets(buffer, 256, test_list);
+        fgets(buffer, 256, test_list_file);
         buffer[strcspn(buffer, "\n")] = 0;
 
-        temp_param->target_color = atoi(strtok(buffer, " "));
-        temp_param->size = atoi(strtok(NULL, " "));
+        temp_param->size = atoi(strtok(buffer, " "));
         strcpy(temp_param->graph_filename, strtok(NULL, " "));
         strcpy(temp_param->result_filename, strtok(NULL, " "));
 
-        // pthread_create(&temp, &attr, test_graph, temp_param);
-        test_graph(temp_param);
+        pthread_create(&temp, &attr, test_graph, temp_param);
+        // test_graph(temp_param);
 
-        // while (thread_count == 10);
+        while (thread_count == 10);
     }
 
-    // while (thread_count > 0);
+    while (thread_count > 0);
 
-    fclose(test_list);
-
-
-    // test_graph(138, "graph_datasets/anna.col");
-    // test_graph(87, "graph_datasets/david.col");
-    // // test_graph(561, "graph_datasets/homer.col");
-    // test_graph(74, "resources/graph_datasets/huck.col", "resources/results/huck_colored.txt");
-    // test_graph(80, "graph_datasets/jean.col");
-
-    // test_graph(496, "graph_datasets/fpsol2.i.1.col");
-    // test_graph(451, "graph_datasets/fpsol2.i.2.col");
-    // test_graph(425, "graph_datasets/fpsol2.i.3.col");
-
-    // test_graph(120, "resources/graph_datasets/games120.col", "resources/results/games120_colored.txt");
-
-    // test_graph(864, "graph_datasets/inithx.i.1.col");
-    // test_graph(645, "graph_datasets/inithx.i.2.col");
-    // test_graph(621, "graph_datasets/inithx.i.3.col");
-
-    // test_graph(250, "resources/graph_datasets/dsjc250.5.col", "resources/results/dsjc250_5_colored.txt");
-    // test_graph(500, "resources/graph_datasets/dsjc500.1.col", "resources/results/dsjc500_1_colored.txt");
-    // test_graph(500, "graph_datasets/dsjc500.5.col");
-    // test_graph(500, "graph_datasets/dsjc500.9.col");
-    // test_graph(1000, "graph_datasets/dsjc1000.1.col");
-    // test_graph(1000, "graph_datasets/dsjc1000.5.col");
-    // test_graph(1000, "graph_datasets/dsjc1000.9.col");
-
-    // test_graph(500, "graph_datasets/dsjr500.1c.col");
-    // test_graph(500, "graph_datasets/dsjr500.5.col");
-
-    // test_graph(300, "graph_datasets/flat300_28_0.col");
-    // test_graph(1000, "graph_datasets/flat1000_50_0.col");
-    // test_graph(1000, "graph_datasets/flat1000_60_0.col");
-    // test_graph(1000, "graph_datasets/flat1000_76_0.col");
-
-    // test_graph(900, "graph_datasets/latin_square.col");
-
-    // test_graph(450, "graph_datasets/le450_5a.col");
-    // test_graph(450, "graph_datasets/le450_5b.col");
-    // test_graph(450, "graph_datasets/le450_5c.col");
-    // test_graph(450, "graph_datasets/le450_5d.col");
-    // test_graph(450, "graph_datasets/le450_15a.col");
-    // test_graph(450, "graph_datasets/le450_15b.col");
-    // test_graph(450, "graph_datasets/le450_15c.col");
-    // test_graph(450, "graph_datasets/le450_15d.col");
-    // test_graph(450, "graph_datasets/le450_25a.col");
-    // test_graph(450, "graph_datasets/le450_25b.col");
-    // test_graph(450, "graph_datasets/le450_25c.col");
-    // test_graph(450, "graph_datasets/le450_25d.col");
-
-    // test_graph(128, "graph_datasets/miles250.col");
-    // test_graph(128, "graph_datasets/miles500.col");
-    // test_graph(128, "graph_datasets/miles750.col");
-    // test_graph(128, "graph_datasets/miles1000.col");
-    // test_graph(128, "graph_datasets/miles1500.col");
-
-    // test_graph(197, "graph_datasets/mulsol.i.1.col");
-    // test_graph(188, "graph_datasets/mulsol.i.2.col");
-    // test_graph(184, "graph_datasets/mulsol.i.3.col");
-    // test_graph(185, "graph_datasets/mulsol.i.4.col");
-    // test_graph(186, "graph_datasets/mulsol.i.5.col");
-
-    // // test_graph(5, "graph_datasets/myciel2.col");
-    // test_graph(11, "graph_datasets/myciel3.col");
-    // test_graph(23, "graph_datasets/myciel4.col");
-    // test_graph(47, "graph_datasets/myciel5.col");
-    // test_graph(95, "graph_datasets/myciel6.col");
-    // test_graph(191, "graph_datasets/myciel7.col");
-
-    // test_graph(25, "graph_datasets/queen5_5.col");
-    // test_graph(36, "graph_datasets/queen6_6.col");
-    // test_graph(49, "graph_datasets/queen7_7.col");
-    // test_graph(96, "graph_datasets/queen8_8.col");
-    // test_graph(64, "graph_datasets/queen8_12.col");
-    // test_graph(81, "graph_datasets/queen9_9.col");
-    // test_graph(100, "graph_datasets/queen10_10.col");
-    // test_graph(121, "graph_datasets/queen11_11.col");
-    // test_graph(144, "graph_datasets/queen12_12.col");
-    // test_graph(169, "graph_datasets/queen13_13.col");
-    // test_graph(196, "graph_datasets/queen14_14.col");
-    // test_graph(225, "graph_datasets/queen15_15.col");
-    // test_graph(256, "graph_datasets/queen16_16.col");
-
-    // test_graph(250, "graph_datasets/r250.5.col");
-    // test_graph(1000, "graph_datasets/r1000.1c.col");
-    // test_graph(1000, "graph_datasets/r1000.5.col");
-
-    // test_graph(352, "graph_datasets/school1_nsh.col");
-    // test_graph(385, "graph_datasets/school1.col");
-
-    // test_graph(211, "graph_datasets/zeroin.i.1.col");
-    // test_graph(211, "graph_datasets/zeroin.i.2.col");
-    // test_graph(206, "graph_datasets/zeroin.i.3.col");
-
-    // test_graph(2000, "graph_datasets/C2000.5.col");
-    // test_graph(4000, "graph_datasets/C4000.5.col");
+    fclose(test_list_file);
 }

@@ -1,4 +1,5 @@
-OBJECTS = obj/crossover.o \
+OBJECTS = obj/common.o \
+		  obj/stdgraph.o \
 		  obj/genetic_alg.o \
 		  obj/test.o
 

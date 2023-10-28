@@ -1,15 +1,21 @@
-    best solution = 3
-    time: avg  = 0.001951
+
+graph resources/graph_datasets/goodgraph.col:
+    base color: 4
+    best solution:
+        time    = 0.000092
+        colors  = 3
+    avg values:
+        time    = 0.000101
+        colors  = 3.000000
 
 
-
-0 2
 0 3
-0 7
+0 4
 0 10
 1 1
-1 5
-1 8
+1 7
 1 9
-2 4
+2 2
+2 5
 2 6
+2 8
