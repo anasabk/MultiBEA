@@ -1,0 +1,1 @@
+64 resources/graph_datasets/queen8_8g.edgelist resources/graph_datasets/queen8_8g.col.w resources/results/queen8_8g.txt
