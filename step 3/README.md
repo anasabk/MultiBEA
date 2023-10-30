@@ -1,6 +1,6 @@
-# Step 2: Testing The Algorithm With Large Datasets
+# Step 3: Add Crossover and Search back operations
 ## Test results:
-For each of the datasets below, 100 solutions were calculated and the best results are put in the table.
+For each of the datasets below, 30000 crossover iterations were done for each solution, and 10 solutions were calculated. The best and average results are put in the table.
 
 Example datasets used are in the [link](https://cedric.cnam.fr/~porumbed/graphs/).
 
@@ -21,5 +21,3 @@ Example datasets used are in the [link](https://cedric.cnam.fr/~porumbed/graphs/
 | DSJC250.5    | 250                | 28         | 41     | 36     | 37.3  | 8704.017578 | 3750.654785|    -   |      -      |
 | DSJC250.9    | 250                | 72         | 101    | 86     | 86.6  | 11130.726562|13421.504883|    -   |      -      |
 | DSJC500.1    | 500                | 12         | 20     | 18     | 18    | 827.279114  | 3874.307129|    -   |      -      |
-| DSJC500.5    | 500                | 48         | -      | -      | -     | -    | -   |    -   |      -      |
-| DSJC500.9    | 500                | 126        | -      | -      | -     | -    | -   |    -   |      -      |
