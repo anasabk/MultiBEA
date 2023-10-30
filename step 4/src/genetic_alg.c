@@ -296,7 +296,7 @@ int crossover(
     memset(used_color_list, 0, 2*max_color_num);
 
     // info of vertices taken out of the parents.
-    int used_vertex_count = 0, temp_used_count;
+    int used_vertex_count = 0;
     char used_vertex_list[size];
     memset(used_vertex_list, 0, size);
 
