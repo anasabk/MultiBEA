@@ -301,14 +301,13 @@ int crossover(
     memset(used_vertex_list, 0, size);
 
     // info of pool.
-    int pool_count = 0, dummy_pool_count;
+    int pool_count = 0;
     int pool_age[size];
-    char pool[size], dummy_pool[size];
+    char pool[size];
     for(int i = 0; i < size; i++)
         pool_age[i] = 0;
 
     memset(pool, 0, size);
-    memset(dummy_pool, 0, size);
 
     // Main loop that iterates over all of the colors of the parents.
     char const *parent_color_p[2];
@@ -357,34 +356,6 @@ int crossover(
          * of the parents with the pool.
          */
         } else if(used_vertex_count < size) {
-            // memset(dummy_pool, 0, size);
-            // temp_used_count = merge_colors(
-            //     size,
-            //     parent_color_p,
-            //     pool,
-            //     dummy_pool,
-            //     &dummy_pool_count,
-            //     used_vertex_list
-            // );
-
-            // pool_count += temp_used_count;
-            // used_vertex_count += temp_used_count;
-
-
-            // for(j = 0; j < size; j++) {  // for every vertex
-            //     if(!used_vertex_list[j]) { // if vertex is unused
-            //         if(parent_color_p[0] != NULL)
-            //             pool[j] |= parent_color_p[0][j];
-
-            //         if(parent_color_p[1] != NULL)
-            //             pool[j] |= parent_color_p[1][j];
-
-            //         used_vertex_list[j] |= pool[j];
-            //         pool_count += pool[j];
-            //         used_vertex_count += pool[j];
-            //     }
-            // }
-
             for(j = 0; j < size; j++) {
                 if(!used_vertex_list[j]) {
                     pool[j] = 1;
