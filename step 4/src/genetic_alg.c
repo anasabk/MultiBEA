@@ -428,10 +428,7 @@ int crossover(
 
     // All of the vertices were allocated and no conflicts were detected.
     } else {
-        if(!is_valid(size, edges, last_color, child))
-            fitness = __INT_MAX__;
-        else
-            fitness = 0;
+        fitness = 0;
     }
 
     *child_color_count = last_color;
