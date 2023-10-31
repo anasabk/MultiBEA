@@ -1,0 +1,41 @@
+
+graph resources/graph_datasets/GEOM30.edgelist:
+    base color: 6
+    best solution:
+        time    = 0.000060
+        colors  = 6
+    avg values:
+        time    = 0.000086
+        colors  = 6.000000
+
+
+0 13
+0 16
+0 18
+0 19
+0 24
+0 30
+1 2
+1 4
+1 10
+1 15
+1 22
+1 25
+1 26
+1 29
+2 5
+2 7
+2 8
+2 9
+2 11
+2 14
+2 23
+3 3
+3 17
+3 27
+4 1
+4 6
+4 20
+5 12
+5 21
+5 28

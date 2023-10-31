@@ -1,0 +1,25 @@
+
+graph resources/graph_datasets/GEOM20a.edgelist:
+Could not find a solution. Base color: 12 / Best fitness: 0.
+
+
+0 6
+0 7
+0 10
+0 12
+0 13
+1 3
+1 5
+1 8
+1 16
+1 19
+2 9
+2 18
+3 1
+3 2
+3 14
+3 15
+3 17
+3 20
+4 4
+4 11
