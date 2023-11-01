@@ -1,25 +1,31 @@
 
 graph resources/graph_datasets/GEOM20a.edgelist:
-Could not find a solution. Base color: 12 / Best fitness: 0.
+    base color: 6
+    best solution:
+        time    = 0.000049
+        colors  = 5
+    avg values:
+        time    = 0.000177
+        colors  = 5.000000
 
 
-0 6
-0 7
-0 10
-0 12
+0 9
 0 13
+0 17
+0 19
+1 2
 1 3
-1 5
 1 8
-1 16
-1 19
-2 9
-2 18
-3 1
-3 2
-3 14
+1 18
+2 6
+2 7
+2 12
+2 14
+2 20
+3 5
+3 11
 3 15
-3 17
-3 20
+3 16
+4 1
 4 4
-4 11
+4 10
