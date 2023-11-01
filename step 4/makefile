@@ -5,14 +5,20 @@ OBJECTS = obj/common.o \
 
 SEARCH_PATH = include
 
-GCCPARAMS = -Wall -g -std=gnu17 -lm -I$(SEARCH_PATH)
+CFLAGS = -Wall -std=gnu17 -lm -I$(SEARCH_PATH)
+
+ifdef WITH_DEBUG
+  CFLAGS += -g
+else
+  CFLAGS += -O3
+endif
 
 obj/%.o: src/%.c
 	mkdir -p $(@D)
-	gcc $(GCCPARAMS) -c $< -o $@
+	gcc $(CFLAGS) -c $< -o $@
 
 build: $(OBJECTS)
-	gcc $(GCCPARAMS) $(OBJECTS) -o genetic_coloring
+	gcc $(CFLAGS) $(OBJECTS) -o genetic_coloring
 
 run: build
 	./genetic_coloring resources/test_list.txt

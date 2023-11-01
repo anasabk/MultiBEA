@@ -50,7 +50,7 @@ bool read_weights(const char* filename, int size, int weights[]) {
 
     char buffer[64];
     int vertex = 0;
-    while(!feof(fp) && vertex <= size) {
+    while(!feof(fp) && vertex < size) {
         fgets(buffer, 64, fp);
         buffer[strcspn(buffer, "\n")] = 0;
         weights[vertex] = atoi(buffer);
@@ -72,7 +72,7 @@ bool is_valid(int size, const char edges[size][size], int color_num, const char 
 
         // Check if the vertex had more then one color.
         if(is_colored > 1) {
-            printf("The vertex %d has more than one color, exitting\n", i+1);
+            printf("The vertex %d has more than one color.\n", i+1);
             return false;
         }
     }
@@ -83,7 +83,7 @@ bool is_valid(int size, const char edges[size][size], int color_num, const char 
                 for(k = j; k < size; k++) { // Through every vertex after j in color i.
                     if(colors[i][k] && edges[j][k]) {
                         // The two vertices have the same color.
-                        printf("The verteces %d and %d are connected and have the same color %d, exitting\n", i+1, j+1, k);
+                        printf("The verteces %d and %d are connected and have the same color %d.\n", i+1, j+1, k);
                         return 0;
                     }
                 }
@@ -183,8 +183,8 @@ int count_conflicts(int size, const char color[], const char edges[][size], cons
         if(color[i]) { // Check if the vertex i has this color i.
             for(j = i + 1; j < size; j++) {  // k = index of a vertex to check if it has an edge with i.
                 if(color[j] && edges[i][j]) { // Check if the vertex k has the color i and has an edge with the vertex i.
-                    conflict_count[i] += 1;
-                    conflict_count[j] += 1;
+                    conflict_count[i]++;
+                    conflict_count[j]++;
                     competition[i] += weights[j];
                     competition[j] += weights[i];
                     total_conflicts++;

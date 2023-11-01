@@ -88,6 +88,8 @@ int graph_color_genetic(
             dead_parent = parent1;
         else if (temp_fitness <= fitness[parent2] && child_colors <= color_count[parent2])
             dead_parent = parent2;
+        else if (rand()%100 < 5)
+            dead_parent = parent1 == best ? parent2 : parent1;
 
         // Replace a dead parent.
         if(dead_parent > -1) {
@@ -103,6 +105,7 @@ int graph_color_genetic(
 
         // Make the target harder if it was found.
         if(temp_fitness == 0) {
+            // is_valid(size, edges, child_colors, child);
             target_color_count = child_colors - 1;
 
             if(target_color_count == 0)
@@ -184,6 +187,13 @@ void rm_vertex(
     int *total_conflicts,
     int *pool_total
 ) {
+    for(int i = 0; i < size; i++) {
+        if(color[i] && edges[vertex][i]) {
+            conflict_count[i]--;
+            competition[i] -= weights[vertex];
+        }
+    }
+
     color[vertex] = 0;
     pool[vertex] = 1;
     (*pool_total)++;
@@ -191,13 +201,6 @@ void rm_vertex(
     competition[vertex] = 0;
     (*total_conflicts) -= conflict_count[vertex];
     conflict_count[vertex] = 0;
-
-    for(int i = 0; i < size; i++) {
-        if(color[i] && edges[vertex][i]) {
-            conflict_count[i]--;
-            competition[i] -= weights[vertex];
-        }
-    }
 }
 
 void fix_conflicts(
@@ -312,7 +315,7 @@ int crossover(
     // Main loop that iterates over all of the colors of the parents.
     char const *parent_color_p[2];
     int color1, color2, last_color = 0;
-    int i, j, k, child_color;
+    int i, j, k, child_color = 0;
     for(i = 0; i < max_iter_num && used_vertex_count < size; i++) {
         // Pick 2 random colors.
         color1 = get_rand_color(color_num1, i, used_color_list[0]);
