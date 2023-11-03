@@ -63,8 +63,8 @@ void* test_graph(void *param) {
     memset(best_colors, 0, max_edge_count*size);
 
     int greedy_color_count = graph_color_greedy(size, edges, temp_colors, max_edge_count);
-
-    for(int k = 0; k < 10; k++) {
+    int iteration_count = 1;
+    for(int k = 0; k < iteration_count; k++) {
         memset(temp_colors, 0, max_edge_count*size);
 
         temp_color_count = graph_color_genetic(
@@ -72,7 +72,7 @@ void* test_graph(void *param) {
             edges,
             weights,
             greedy_color_count,
-            80000,
+            20,
             temp_colors,
             &temp_fitness,
             &temp_time
@@ -107,7 +107,7 @@ void* test_graph(void *param) {
             graph_filename, 
             greedy_color_count,
             best_time, best_color_count,
-            total_time/10, total_color_count/10.0
+            total_time/iteration_count, total_color_count/((float)iteration_count)
         );
 
     } else {

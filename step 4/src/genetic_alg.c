@@ -60,6 +60,8 @@ int graph_color_genetic(
     int target_color_count = base_color_count;
     int parent1, parent2, dead_parent, child_colors, temp_fitness, best = 0;
     for(i = 0; i < max_gen_num; i++) {
+        printf("\nDoing Crossover %d: target color count %d\n", i, target_color_count);
+
         // Initialize the child
         memset(child, 0, size*base_color_count);
 
@@ -67,6 +69,22 @@ int graph_color_genetic(
         dead_parent = -1;
         parent1 = rand()%100;
         do { parent2 = rand()%100; } while (parent1 == parent2);
+
+        printf("    Chosen Parents:\n        individual %2d fitness %2d:", parent1, fitness[parent1]);
+        for(int j = 0; j < color_count[parent1]; j++) {
+            printf(" | ");
+            for(int k = 0; k < size; k++)
+                if(colors[parent1][j][k])
+                    printf("%2d ", k);
+        }
+
+        printf("\n        individual %2d fitness %2d:", parent2, fitness[parent2]);
+        for(int j = 0; j < color_count[parent2]; j++) {
+            printf(" | ");
+            for(int k = 0; k < size; k++)
+                if(colors[parent2][j][k])
+                    printf("%2d ", k);
+        }
 
         // Do a crossover
         temp_fitness = crossover(
@@ -83,16 +101,26 @@ int graph_color_genetic(
             &child_colors
         );
 
+        printf("\n        child with fitness %2d:   ", temp_fitness);
+        for(int j = 0; j < target_color_count; j++) {
+            printf(" | ");
+            for(int k = 0; k < size; k++)
+                if(child[j][k])
+                    printf("%2d ", k);
+        }
+        printf("\n");
+
         // Check if the child is better than any of the parents.
         if (temp_fitness <= fitness[parent1] && child_colors <= color_count[parent1])
             dead_parent = parent1;
         else if (temp_fitness <= fitness[parent2] && child_colors <= color_count[parent2])
             dead_parent = parent2;
-        else if (rand()%100 < 5)
+        else if (rand()%100 < 15)
             dead_parent = parent1 == best ? parent2 : parent1;
 
         // Replace a dead parent.
         if(dead_parent > -1) {
+            printf("Child replaced the individual %d.\n", dead_parent);
             memmove(colors[dead_parent], child, size*base_color_count);
             color_count[dead_parent] = child_colors;
             fitness[dead_parent] = temp_fitness;
@@ -203,7 +231,7 @@ void rm_vertex(
     conflict_count[vertex] = 0;
 }
 
-void fix_conflicts(
+void local_search(
     int size,
     const char edges[][size],
     const int weights[],
@@ -317,6 +345,8 @@ int crossover(
     int color1, color2, last_color = 0;
     int i, j, k, child_color = 0;
     for(i = 0; i < max_iter_num && used_vertex_count < size; i++) {
+        printf("\n    Creating color %2d:\n", i);
+
         // Pick 2 random colors.
         color1 = get_rand_color(color_num1, i, used_color_list[0]);
         color2 = get_rand_color(color_num2, i, used_color_list[1]);
@@ -331,6 +361,18 @@ int crossover(
         else
             parent_color_p[1] = parent2[color2];
 
+        printf("            Chosen colors:\n                color %2d:", color1);
+        for(j = 0; j < size; j++) {
+            if(parent_color_p[0][j])
+                printf("%2d ", j);
+        }
+
+        printf("\n                color %2d:", color2);
+        for(j = 0; j < size; j++) {
+            if(parent_color_p[1][j])
+                printf("%2d ", j);
+        }
+
         // The child still has colors that weren't populated.
         if(i < target_color_count) {
             child_color = i;
@@ -343,8 +385,13 @@ int crossover(
                 &pool_count,
                 used_vertex_list
             );
+            printf("\n                new color after merge:");
+            for(j = 0; j < size; j++) {
+                if(child[i][j])
+                    printf("%2d ", j);
+            }
 
-            fix_conflicts(
+            local_search(
                 size,
                 edges,
                 weights,
@@ -353,6 +400,11 @@ int crossover(
                 pool,
                 &pool_count
             );
+            printf("\n                new color after merge:");
+            for(j = 0; j < size; j++) {
+                if(child[i][j])
+                    printf("%2d ", j);
+            }
 
         /**
          * All of the child's colors were visited, merge the current colors
@@ -376,7 +428,7 @@ int crossover(
                 pool[j] = 0;
                 pool_count--;
 
-                fix_conflicts(
+                local_search(
                     size,
                     edges,
                     weights,
@@ -395,6 +447,20 @@ int crossover(
             else
                 pool_age[j] = 0;
         }
+
+        printf("\n        Child state: ");
+        for(int j = 0; j < target_color_count; j++) {
+            printf(" | ");
+            for(int k = 0; k < size; k++)
+                if(child[j][k])
+                    printf("%2d ", k);
+        }
+        printf("\n        Pool state: ");
+        for(int j = 0; j < size; j++) {
+            if(pool[j])
+                printf("%2d ", j);
+        }
+        printf("\n");
     }
 
     // Record the last color of the child.

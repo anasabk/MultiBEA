@@ -81,7 +81,7 @@ int merge_colors(
  * @param pool Pool to store vertices removed from the color.
  * @param pool_total Total number of vertices in the pool.
  */
-void fix_conflicts(
+void local_search(
     int size,
     const char edges[][size],
     const int weights[],
