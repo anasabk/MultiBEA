@@ -511,27 +511,6 @@ int crossover(
         LOGDSTR("\n");
     }
 
-    LOGDSTR("\n        Another last Search Back:");
-    // Search back to try to place vertices in the pool in previous colors.
-    for(j = 0; j < size && pool_count > 0; j++) {
-        for(k = pool_age[j]; k < child_color && pool[j]; k++) {
-            LOGD("\n            Try placing vertex %d in color %d.", j, k);
-            child[k][j] = 1;
-            pool[j] = 0;
-            pool_count--;
-
-            local_search(
-                size,
-                edges,
-                weights,
-                num_of_edges,
-                child[k],
-                pool,
-                &pool_count
-            );
-        }
-    }
-
     // Record the last color of the child.
     last_color = child_color + 1;
 
@@ -539,9 +518,32 @@ int crossover(
     int competition[size];
     memset(competition, 0, size*sizeof(int));
     
-    LOGDSTR("        Randomly allocate the pool in the colors.");
     // If the pool is not empty, randomly allocate the remaining vertices in the colors.
     if(pool_count > 0) {
+        LOGDSTR("\n        Another last Search Back:");
+        // Search back to try to place vertices in the pool in previous colors.
+        for(j = 0; j < size && pool_count > 0; j++) {
+            for(k = pool_age[j]; k < child_color && pool[j]; k++) {
+                LOGD("\n            Try placing vertex %d in color %d.", j, k);
+                child[k][j] = 1;
+                pool[j] = 0;
+                pool_count--;
+
+                local_search(
+                    size,
+                    edges,
+                    weights,
+                    num_of_edges,
+                    child[k],
+                    pool,
+                    &pool_count
+                );
+            }
+        }
+    }
+
+    if(pool_count > 0) {
+        LOGDSTR("        Randomly allocate the pool in the colors.");
         int color_num;
         int temp_count[size];
         for(i = 0; i < size; i++) {
