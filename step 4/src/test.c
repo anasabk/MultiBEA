@@ -63,7 +63,7 @@ void* test_graph(void *param) {
     memset(best_colors, 0, max_edge_count*size);
 
     int greedy_color_count = graph_color_greedy(size, edges, temp_colors, max_edge_count);
-    int iteration_count = 1;
+    int iteration_count = 5;
     for(int k = 0; k < iteration_count; k++) {
         memset(temp_colors, 0, max_edge_count*size);
 
@@ -72,7 +72,7 @@ void* test_graph(void *param) {
             edges,
             weights,
             greedy_color_count,
-            20,
+            30000,
             temp_colors,
             &temp_fitness,
             &temp_time
@@ -82,7 +82,8 @@ void* test_graph(void *param) {
         total_fitness += temp_fitness;
         total_time += temp_time;
 
-        if (temp_fitness < best_fitness || 
+        if ((temp_color_count < best_color_count && temp_fitness == 0) ||
+            temp_fitness < best_fitness || 
             (temp_fitness == best_fitness && temp_color_count < best_color_count) ||
             (temp_fitness == best_fitness && temp_color_count <= best_color_count && temp_time < best_time)) 
         {
@@ -95,7 +96,6 @@ void* test_graph(void *param) {
 
     char buffer[512];
     if(is_valid(size, edges, greedy_color_count, best_colors)) {
-        double total_exec = crossover_time + merge_colors_time + rm_vertex_time + local_search_time;
         sprintf(buffer,
             "\ngraph %s:\n"\
             "    base color: %d\n"\
@@ -104,24 +104,26 @@ void* test_graph(void *param) {
             "        colors  = %d\n"\
             "    avg values:\n"\
             "        time    = %lf\n"\
-            "        colors  = %f\n"\
-            "    Time used: \n"\
-            "        Crossover:      %f%%\n"\
-            "        Color Merge:    %f%%\n"\
-            "        Vertex Removal: %f%%\n"\
-            "        Local Search:   %f%%\n"\
-            "        count conflicts:%f%%\n",
+            "        colors  = %f\n",
+            // "    Time used: \n"\
+            // "        Total:          %f%%\n"\
+            // "        Crossover:      %f%%\n"\
+            // "        Color Merge:    %f%%\n"\
+            // "        Local Search:   %f%%\n"\
+            // "        Vertex Removal: %f%%\n"\
+            // "        count conflicts:%f%%\n",
             graph_filename, 
             greedy_color_count,
             best_time, 
             best_color_count,
             total_time/iteration_count, 
-            total_color_count/((float)iteration_count),
-            crossover_time,
-            merge_colors_time,
-            rm_vertex_time,
-            local_search_time,
-            count_conflicts_time
+            total_color_count/((float)iteration_count)
+            // genetic_time,
+            // crossover_time,
+            // merge_colors_time,
+            // local_search_time,
+            // rm_vertex_time,
+            // count_conflicts_time
         );
 
     } else {
@@ -189,11 +191,11 @@ int main(int argc, char *argv[]) {
         strcpy(temp_param->weight_filename, strtok(NULL, " "));
         strcpy(temp_param->result_filename, strtok(NULL, " "));
 
-        // pthread_create(&temp, &attr, test_graph, temp_param);
-        test_graph(temp_param);
-        break;
+        pthread_create(&temp, &attr, test_graph, temp_param);
+        // test_graph(temp_param);
+        // break;
 
-        // while (thread_count == 10);
+        while (thread_count == 10);
     }
 
     while (thread_count > 0);

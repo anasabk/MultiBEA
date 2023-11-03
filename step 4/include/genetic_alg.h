@@ -1,3 +1,27 @@
+#ifndef GENETEIC_ALG_H
+#define GENETEIC_ALG_H
+
+
+#include <stdatomic.h>
+
+struct crossover_param_s {
+    int *base_color_count;
+    int size;
+    int max_gen_num;
+    char (*edges)[size][size];
+    int (*weights)[size];
+    int (*edge_count_list)[size];
+    int (*color_count)[size];
+    int (*fitness)[size];
+    char (*colors)[100][base_color_count][size];
+    atomic_bool (*used_parents)[size];
+};
+
+struct crossover_result_s {
+    int best_i;
+    double best_time;
+};
+
 
 /**
  * @brief randomly color the graph with max_color being the
@@ -123,3 +147,5 @@ int crossover(
     char child[][size],
     int *child_color_count
 );
+
+#endif
