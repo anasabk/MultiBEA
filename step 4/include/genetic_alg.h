@@ -1,3 +1,4 @@
+
 /**
  * @brief randomly color the graph with max_color being the
  * upper bound of colors used.

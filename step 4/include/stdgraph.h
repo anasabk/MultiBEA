@@ -2,6 +2,13 @@
 #include <stdbool.h>
 
 
+extern double merge_colors_time;
+extern double rm_vertex_time;
+extern double local_search_time;
+extern double crossover_time;
+extern double count_conflicts_time;
+
+
 bool read_graph(const char* filename, int size, char edges[][size]);
 
 bool read_weights(const char* filename, int size, int weights[]);

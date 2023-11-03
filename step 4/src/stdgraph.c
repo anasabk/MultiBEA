@@ -4,10 +4,17 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
 
 #include "stdgraph.h"
 #include "common.h"
 
+
+double merge_colors_time = 0;
+double rm_vertex_time = 0;
+double local_search_time = 0;
+double crossover_time = 0;
+double count_conflicts_time = 0;
 
 bool read_graph(const char* filename, int size, char edges[][size]) {
     FILE *fp = fopen(filename, "r");
@@ -178,6 +185,7 @@ int graph_color_greedy(int size, const char edges[][size], char colors[][size], 
 }
 
 int count_conflicts(int size, const char color[], const char edges[][size], const int weights[], int competition[], int conflict_count[]) {
+    clock_t start = clock();
     int i, j, total_conflicts = 0;
     for(i = 0; i < size; i++) {   // i = index of the vertex to search for conflicts.
         if(color[i]) { // Check if the vertex i has this color i.
@@ -193,5 +201,6 @@ int count_conflicts(int size, const char color[], const char edges[][size], cons
         }
     }
 
+    count_conflicts_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return total_conflicts;
 }

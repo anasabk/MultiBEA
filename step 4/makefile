@@ -8,7 +8,7 @@ SEARCH_PATH = include
 CFLAGS = -Wall -std=gnu17 -lm -I$(SEARCH_PATH)
 
 ifdef WITH_DEBUG
-  CFLAGS += -g
+  CFLAGS += -g -D WITH_DEBUG=1
 else
   CFLAGS += -O3
 endif

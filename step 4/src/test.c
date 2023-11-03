@@ -95,6 +95,7 @@ void* test_graph(void *param) {
 
     char buffer[512];
     if(is_valid(size, edges, greedy_color_count, best_colors)) {
+        double total_exec = crossover_time + merge_colors_time + rm_vertex_time + local_search_time;
         sprintf(buffer,
             "\ngraph %s:\n"\
             "    base color: %d\n"\
@@ -103,11 +104,24 @@ void* test_graph(void *param) {
             "        colors  = %d\n"\
             "    avg values:\n"\
             "        time    = %lf\n"\
-            "        colors  = %f\n",
+            "        colors  = %f\n"\
+            "    Time used: \n"\
+            "        Crossover:      %f%%\n"\
+            "        Color Merge:    %f%%\n"\
+            "        Vertex Removal: %f%%\n"\
+            "        Local Search:   %f%%\n"\
+            "        count conflicts:%f%%\n",
             graph_filename, 
             greedy_color_count,
-            best_time, best_color_count,
-            total_time/iteration_count, total_color_count/((float)iteration_count)
+            best_time, 
+            best_color_count,
+            total_time/iteration_count, 
+            total_color_count/((float)iteration_count),
+            crossover_time,
+            merge_colors_time,
+            rm_vertex_time,
+            local_search_time,
+            count_conflicts_time
         );
 
     } else {
@@ -175,10 +189,11 @@ int main(int argc, char *argv[]) {
         strcpy(temp_param->weight_filename, strtok(NULL, " "));
         strcpy(temp_param->result_filename, strtok(NULL, " "));
 
-        pthread_create(&temp, &attr, test_graph, temp_param);
-        // test_graph(temp_param);
+        // pthread_create(&temp, &attr, test_graph, temp_param);
+        test_graph(temp_param);
+        break;
 
-        while (thread_count == 10);
+        // while (thread_count == 10);
     }
 
     while (thread_count > 0);

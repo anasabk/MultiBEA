@@ -11,6 +11,7 @@
 
 #include "genetic_alg.h"
 #include "stdgraph.h"
+#include "common.h"
 
 
 void graph_color_random(int size, const char edges[][size], char colors[][size], int max_color) {
@@ -28,6 +29,11 @@ int graph_color_genetic(
     int *best_fitness,
     float *best_solution_time
 ) {
+    merge_colors_time = 0;
+    rm_vertex_time = 0;
+    local_search_time = 0;
+    crossover_time = 0;
+
     clock_t start_time = clock();
     float last_solution_time = 0;
 
@@ -60,7 +66,7 @@ int graph_color_genetic(
     int target_color_count = base_color_count;
     int parent1, parent2, dead_parent, child_colors, temp_fitness, best = 0;
     for(i = 0; i < max_gen_num; i++) {
-        printf("\nDoing Crossover %d: target color count %d\n", i, target_color_count);
+        LOGD("\nDoing Crossover %d: target color count %d\n", i, target_color_count);
 
         // Initialize the child
         memset(child, 0, size*base_color_count);
@@ -70,20 +76,20 @@ int graph_color_genetic(
         parent1 = rand()%100;
         do { parent2 = rand()%100; } while (parent1 == parent2);
 
-        printf("    Chosen Parents:\n        individual %2d fitness %2d:", parent1, fitness[parent1]);
+        LOGD("    Chosen Parents:\n        individual %2d fitness %2d:", parent1, fitness[parent1]);
         for(int j = 0; j < color_count[parent1]; j++) {
-            printf(" | ");
+            LOGDSTR(" | ");
             for(int k = 0; k < size; k++)
                 if(colors[parent1][j][k])
-                    printf("%2d ", k);
+                    LOGD("%2d ", k);
         }
 
-        printf("\n        individual %2d fitness %2d:", parent2, fitness[parent2]);
+        LOGD("\n        individual %2d fitness %2d:", parent2, fitness[parent2]);
         for(int j = 0; j < color_count[parent2]; j++) {
-            printf(" | ");
+            LOGDSTR(" | ");
             for(int k = 0; k < size; k++)
                 if(colors[parent2][j][k])
-                    printf("%2d ", k);
+                    LOGD("%2d ", k);
         }
 
         // Do a crossover
@@ -101,14 +107,14 @@ int graph_color_genetic(
             &child_colors
         );
 
-        printf("\n        child with fitness %2d:   ", temp_fitness);
+        LOGD("\n        child with fitness %2d:   ", temp_fitness);
         for(int j = 0; j < target_color_count; j++) {
-            printf(" | ");
+            LOGDSTR(" | ");
             for(int k = 0; k < size; k++)
                 if(child[j][k])
-                    printf("%2d ", k);
+                    LOGD("%2d ", k);
         }
-        printf("\n");
+        LOGDSTR("\n");
 
         // Check if the child is better than any of the parents.
         if (temp_fitness <= fitness[parent1] && child_colors <= color_count[parent1])
@@ -120,7 +126,7 @@ int graph_color_genetic(
 
         // Replace a dead parent.
         if(dead_parent > -1) {
-            printf("Child replaced the individual %d.\n", dead_parent);
+            LOGD("Child replaced the individual %d.\n", dead_parent);
             memmove(colors[dead_parent], child, size*base_color_count);
             color_count[dead_parent] = child_colors;
             fitness[dead_parent] = temp_fitness;
@@ -181,6 +187,8 @@ int merge_colors(
     int *pool_total,
     char used_vertex_list[]
 ) {
+    clock_t start = clock();
+
     int total_used = 0;
     for(int i = 0; i < size; i++) {  // for every vertex
         if(!used_vertex_list[i]) { // if vertex is unused
@@ -200,6 +208,7 @@ int merge_colors(
         }
     }
 
+    merge_colors_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return total_used;
 }
 
@@ -215,6 +224,7 @@ void rm_vertex(
     int *total_conflicts,
     int *pool_total
 ) {
+    clock_t start = clock();
     for(int i = 0; i < size; i++) {
         if(color[i] && edges[vertex][i]) {
             conflict_count[i]--;
@@ -229,6 +239,7 @@ void rm_vertex(
     competition[vertex] = 0;
     (*total_conflicts) -= conflict_count[vertex];
     conflict_count[vertex] = 0;
+    rm_vertex_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
 }
 
 void local_search(
@@ -240,6 +251,8 @@ void local_search(
     char pool[],
     int *pool_total
 ) {
+    clock_t start = clock();
+
     int conflict_count[size];
     memset(conflict_count, 0, size*sizeof(int));
     
@@ -255,19 +268,35 @@ void local_search(
         competition,
         conflict_count
     );
+    LOGD("\n        Local Search to fix conflicts: %d conflicts are present", total_conflicts);
+    LOGDSTR("\n            conflicts of each vertex:   |");
+    for(int j = 0; j < size; j++) {
+        LOGD(" %2d |", conflict_count[j]);
+    }
+    LOGDSTR("\n            competition of each vertex: |");
+    for(int j = 0; j < size; j++) {
+        LOGD(" %2d |", competition[j]);
+    }
+    LOGDSTR("\n            weight of each vertex:      |");
+    for(int j = 0; j < size; j++) {
+        LOGD(" %2d |", weights[j]);
+    }
 
     // Keep removing problematic vertices until all conflicts are gone.
     int i, worst_vert = 0;
     while(total_conflicts > 0) {
-        // Find the conflicting vertex with the highest weight.
+        LOGDSTR("\n");
+        // Find the vertex with the most conflicts.
         for(i = 0; i < size; i++) {
             if (conflict_count[worst_vert] < conflict_count[i] ||
                 (conflict_count[worst_vert] == conflict_count[i] &&
-                num_of_edges[worst_vert] <= num_of_edges[i]))
+                competition[worst_vert] <= competition[i]))
                 worst_vert = i;
         }
+        LOGD("\n            vertex with the most conflicts and competition: %d", worst_vert);
 
-        if(weights[worst_vert] <= competition[worst_vert]) {            
+        if(weights[worst_vert] <= competition[worst_vert]) { 
+            LOGD("\n            removing the vertex %d", worst_vert);
             rm_vertex(
                 worst_vert,
                 size,
@@ -283,6 +312,7 @@ void local_search(
 
         } else {
             // Update the conflicts of the vertices connected to the removed vertex.
+            LOGD("\n            removing all conflicts of vertex %d", worst_vert);
             for(i = 0; i < size; i++){
                 if(edges[worst_vert][i] && color[i]) {
                     rm_vertex(
@@ -301,6 +331,8 @@ void local_search(
             }
         }
     }
+    local_search_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+    LOGDSTR("\n");
 }
 
 int crossover(
@@ -316,6 +348,8 @@ int crossover(
     char child[][size],
     int *child_color_count
 ) {
+    clock_t start = clock();
+
     // max number of colors of the two parents.
     int max_color_num = color_num1 > color_num2 ? color_num1 : color_num2;
 
@@ -345,7 +379,7 @@ int crossover(
     int color1, color2, last_color = 0;
     int i, j, k, child_color = 0;
     for(i = 0; i < max_iter_num && used_vertex_count < size; i++) {
-        printf("\n    Creating color %2d:\n", i);
+        LOGD("\n    Creating color %2d:\n", i);
 
         // Pick 2 random colors.
         color1 = get_rand_color(color_num1, i, used_color_list[0]);
@@ -361,22 +395,23 @@ int crossover(
         else
             parent_color_p[1] = parent2[color2];
 
-        printf("            Chosen colors:\n                color %2d:", color1);
+        LOGD("        Chosen colors:\n            color %2d:", color1);
         for(j = 0; j < size; j++) {
             if(parent_color_p[0][j])
-                printf("%2d ", j);
+                LOGD("%2d ", j);
         }
 
-        printf("\n                color %2d:", color2);
+        LOGD("\n            color %2d:", color2);
         for(j = 0; j < size; j++) {
             if(parent_color_p[1][j])
-                printf("%2d ", j);
+                LOGD("%2d ", j);
         }
 
         // The child still has colors that weren't populated.
         if(i < target_color_count) {
             child_color = i;
 
+            LOGDSTR("\n        Merging colors:");
             used_vertex_count += merge_colors(
                 size,
                 parent_color_p,
@@ -385,10 +420,15 @@ int crossover(
                 &pool_count,
                 used_vertex_list
             );
-            printf("\n                new color after merge:");
+            LOGDSTR("\n            new color after merge:");
             for(j = 0; j < size; j++) {
                 if(child[i][j])
-                    printf("%2d ", j);
+                    LOGD("%2d ", j);
+            }
+            LOGDSTR("\n            pool state: ");
+            for(j = 0; j < size; j++) {
+                if(pool[j])
+                    LOGD("%2d ", j);
             }
 
             local_search(
@@ -400,10 +440,15 @@ int crossover(
                 pool,
                 &pool_count
             );
-            printf("\n                new color after merge:");
+            LOGDSTR("\n            new color after local search:");
             for(j = 0; j < size; j++) {
                 if(child[i][j])
-                    printf("%2d ", j);
+                    LOGD("%2d ", j);
+            }
+            LOGDSTR("\n            new pool state: ");
+            for(j = 0; j < size; j++) {
+                if(pool[j])
+                    LOGD("%2d ", j);
             }
 
         /**
@@ -411,6 +456,7 @@ int crossover(
          * of the parents with the pool.
          */
         } else if(used_vertex_count < size) {
+            LOGDSTR("\n        All target colors were visited, put all unused vertices in the pool");
             for(j = 0; j < size; j++) {
                 if(!used_vertex_list[j]) {
                     pool[j] = 1;
@@ -421,9 +467,11 @@ int crossover(
             }
         }
 
+        LOGDSTR("\n        Search Back:");
         // Search back to try to place vertices in the pool in previous colors.
         for(j = 0; j < size && pool_count > 0; j++) {
             for(k = pool_age[j]; k < child_color && pool[j]; k++) {
+                LOGD("\n            Try placing vertex %d in color %d.", j, k);
                 child[k][j] = 1;
                 pool[j] = 0;
                 pool_count--;
@@ -448,19 +496,40 @@ int crossover(
                 pool_age[j] = 0;
         }
 
-        printf("\n        Child state: ");
+        LOGDSTR("\n        Child state: ");
         for(int j = 0; j < target_color_count; j++) {
-            printf(" | ");
+            LOGDSTR(" | ");
             for(int k = 0; k < size; k++)
                 if(child[j][k])
-                    printf("%2d ", k);
+                    LOGD("%2d ", k);
         }
-        printf("\n        Pool state: ");
+        LOGDSTR("\n        Pool state: ");
         for(int j = 0; j < size; j++) {
             if(pool[j])
-                printf("%2d ", j);
+                LOGD("%2d ", j);
         }
-        printf("\n");
+        LOGDSTR("\n");
+    }
+
+    LOGDSTR("\n        Another last Search Back:");
+    // Search back to try to place vertices in the pool in previous colors.
+    for(j = 0; j < size && pool_count > 0; j++) {
+        for(k = pool_age[j]; k < child_color && pool[j]; k++) {
+            LOGD("\n            Try placing vertex %d in color %d.", j, k);
+            child[k][j] = 1;
+            pool[j] = 0;
+            pool_count--;
+
+            local_search(
+                size,
+                edges,
+                weights,
+                num_of_edges,
+                child[k],
+                pool,
+                &pool_count
+            );
+        }
     }
 
     // Record the last color of the child.
@@ -470,6 +539,7 @@ int crossover(
     int competition[size];
     memset(competition, 0, size*sizeof(int));
     
+    LOGDSTR("        Randomly allocate the pool in the colors.");
     // If the pool is not empty, randomly allocate the remaining vertices in the colors.
     if(pool_count > 0) {
         int color_num;
@@ -501,5 +571,6 @@ int crossover(
     }
 
     *child_color_count = last_color;
+    crossover_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return fitness;
 }
