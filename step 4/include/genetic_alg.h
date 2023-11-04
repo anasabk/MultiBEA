@@ -5,16 +5,17 @@
 #include <stdatomic.h>
 
 struct crossover_param_s {
-    int *base_color_count;
+    int base_color_count;
+    atomic_int *target_color_count;
     int size;
     int max_gen_num;
-    char (*edges)[size][size];
-    int (*weights)[size];
-    int (*edge_count_list)[size];
-    int (*color_count)[size];
-    int (*fitness)[size];
-    char (*colors)[100][base_color_count][size];
-    atomic_bool (*used_parents)[size];
+    char *edges;
+    int *weights;
+    int *edge_count_list;
+    int *color_count;
+    int *fitness;
+    char *colors;
+    atomic_bool *used_parents;
 };
 
 struct crossover_result_s {
@@ -56,7 +57,8 @@ int graph_color_genetic(
     int max_gen_num,
     char best_solution[][size],
     int *best_fitness,
-    float *best_solution_time
+    float *best_solution_time,
+    int thread_num
 );
 
 /**
@@ -147,5 +149,9 @@ int crossover(
     char child[][size],
     int *child_color_count
 );
+
+
+void* crossover_thread(void *param);
+
 
 #endif

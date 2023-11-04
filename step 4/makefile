@@ -20,8 +20,8 @@ obj/%.o: src/%.c
 build: $(OBJECTS)
 	gcc $(CFLAGS) $(OBJECTS) -o genetic_coloring
 
-run: build
-	./genetic_coloring resources/test_list.txt
+run:
+	./genetic_coloring resources/test_list.txt 1 4 50000
 
 clean:
 	rm -rf obj genetic_coloring

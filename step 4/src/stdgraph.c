@@ -10,13 +10,6 @@
 #include "common.h"
 
 
-// double merge_colors_time = 0;
-// double rm_vertex_time = 0;
-// double local_search_time = 0;
-// double crossover_time = 0;
-// double count_conflicts_time = 0;
-// double genetic_time = 0;
-
 bool read_graph(const char* filename, int size, char edges[][size]) {
     FILE *fp = fopen(filename, "r");
     
@@ -75,11 +68,12 @@ bool is_valid(int size, const char edges[size][size], int color_num, const char 
     for(i = 0; i < size; i++) {
         is_colored = 0;
         // Iterate through colors and look for the vertex.
-        for(j = 0; j < color_num; j++)
+        for(j = 0; j < color_num; j++){
             is_colored += colors[j][i];
+        }
 
         // Check if the vertex had more then one color.
-        if(is_colored > 1) {
+        if(is_colored != 1) {
             printf("The vertex %d has more than one color.\n", i+1);
             return false;
         }
@@ -186,7 +180,6 @@ int graph_color_greedy(int size, const char edges[][size], char colors[][size], 
 }
 
 int count_conflicts(int size, const char color[], const char edges[][size], const int weights[], int competition[], int conflict_count[]) {
-    // clock_t start = clock();
     int i, j, total_conflicts = 0;
     for(i = 0; i < size; i++) {   // i = index of the vertex to search for conflicts.
         if(color[i]) { // Check if the vertex i has this color i.
@@ -202,6 +195,5 @@ int count_conflicts(int size, const char color[], const char edges[][size], cons
         }
     }
 
-    // count_conflicts_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return total_conflicts;
 }

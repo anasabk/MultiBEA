@@ -32,16 +32,6 @@ int graph_color_genetic(
     float *best_solution_time,
     int thread_num
 ) {
-    // count_conflicts_time = 0;
-    // merge_colors_time = 0;
-    // rm_vertex_time = 0;
-    // local_search_time = 0;
-    // crossover_time = 0;
-    // genetic_time = 0;
-
-    clock_t start_time = clock();
-    float last_solution_time = 0;
-
     // Count the degrees of each vertex
     int edge_count_list[size];
     count_edges(size, edges, edge_count_list);
@@ -59,166 +49,59 @@ int graph_color_genetic(
      * the base number of colors.
      */
     int i;
-    // int temp_conflict_count[size];
     for (i = 0; i < 100; i++) {
         color_count[i] = base_color_count;
         graph_color_random(size, edges, colors[i], base_color_count);   
         fitness[i] = __INT_MAX__;
     }
 
-    atomic_int iter_count = 0;
-    pthread_attr_t attr;
-    pthread_t thread_id[thread_num];
-    struct crossover_result_s results[thread_num];
-    atomic_bool used_parents[size];
 
+    pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 2048L*1024L*1024L);
 
+    atomic_bool used_parents[size];
+    memset(used_parents, 0, size*sizeof(atomic_bool));
+
+    atomic_int target_color = base_color_count;
     struct crossover_param_s temp_param = {
-        &base_color_count,
+        base_color_count,
+        &target_color,
         size,
-        max_gen_num,
-        edges,
+        max_gen_num/thread_num,
+        (char*)edges,
         weights,
         edge_count_list,
         color_count,
         fitness,
-        colors,
+        (char*)colors,
         used_parents
     };
 
+    pthread_t thread_id[thread_num];
     for(int i = 0; i < thread_num; i++)
         pthread_create(&thread_id[i], &attr, crossover_thread, &temp_param);
 
+    struct crossover_result_s *results[thread_num];
     for(int i = 0; i < thread_num; i++)
-        pthread_join(thread_id[i], &results[i]);
+        pthread_join(thread_id[i], (void**)&results[i]);
 
-    int best = 0;
-    bool flag = false;
+    int best_individual = 0;
+    double best_time = 0;
     for(int i = 0; i < thread_num; i++) {
-        if ((color_count[results[i].best_i] <  color_count[results[best].best_i] && fitness[results[i].best_i] == 0) ||
-            (color_count[results[i].best_i] == color_count[results[best].best_i] && 
-                (fitness[results[i].best_i] < fitness[results[best].best_i] ||
-                (fitness[results[i].best_i] == fitness[results[best].best_i] && 
-                    (color_count[results[i].best_i] < color_count[results[best].best_i] ||
-                    )))
-            ) ||
-            fitness[results[i].best_i] < fitness[results[best].best_i] || 
-            (fitness[results[i].best_i] == fitness[results[best].best_i] && color_count[results[i].best_i] < color_count[results[best].best_i]) ||
-            (fitness[results[i].best_i] == fitness[results[best].best_i] && color_count[results[i].best_i] <= color_count[results[best].best_i] && results[i].best_time < results[best].best_time)) 
-        {
+        if ((fitness[results[i]->best_i] == 0 && (color_count[results[i]->best_i] < color_count[best_individual] || fitness[best_individual] > 0)) ||
+            (color_count[results[i]->best_i] <= color_count[best_individual] && fitness[results[i]->best_i] <= fitness[best_individual])) {
+            best_individual = results[i]->best_i;
+            best_time = results[i]->best_time;
         }
-        
-        if (color_count[results[i].best_i] < color_count[results[best].best_i] && fitness[results[i].best_i] == 0) {
-            flag = true;
-        } else if (color_count[results[i].best_i] <= color_count[results[best].best_i] && fitness[results[i].best_i] <= fitness[results[best].best_i]) {
-            flag = true;
-        } else if (color_count[results[i].best_i] <= color_count[results[best].best_i] && fitness[results[i].best_i] == fitness[results[best].best_i]) {
-            flag = true;
-        }
+        free(results[i]);
     }
 
-    best_color_count = temp_color_count;
-    best_fitness = temp_fitness;
-    best_time = temp_time;
-    memcpy(best_colors, temp_colors, max_edge_count*size);
+    *best_fitness = fitness[best_individual];
+    *best_solution_time = best_time;
+    memcpy(best_solution, colors[best_individual], size*base_color_count);
 
-    // // Keep generating solutions for max_gen_num generations.
-    // char child[base_color_count][size];
-    // int target_color_count = base_color_count;
-    // int parent1, parent2, dead_parent, child_colors, temp_fitness, best = 0;
-    // for(i = 0; i < max_gen_num; i++) {
-    //     // LOGD("\nDoing Crossover %d: target color count %d\n", i, target_color_count);
-
-    //     // Initialize the child
-    //     memset(child, 0, size*base_color_count);
-
-    //     // Pick 2 random parents
-    //     dead_parent = -1;
-    //     parent1 = rand()%100;
-    //     do { parent2 = rand()%100; } while (parent1 == parent2);
-
-    //     // LOGD("    Chosen Parents:\n        individual %2d fitness %2d:", parent1, fitness[parent1]);
-    //     // for(int j = 0; j < color_count[parent1]; j++) {
-    //     //     LOGDSTR(" | ");
-    //     //     for(int k = 0; k < size; k++)
-    //     //         if(colors[parent1][j][k])
-    //     //             LOGD("%2d ", k);
-    //     // }
-
-    //     // LOGD("\n        individual %2d fitness %2d:", parent2, fitness[parent2]);
-    //     // for(int j = 0; j < color_count[parent2]; j++) {
-    //     //     LOGDSTR(" | ");
-    //     //     for(int k = 0; k < size; k++)
-    //     //         if(colors[parent2][j][k])
-    //     //             LOGD("%2d ", k);
-    //     // }
-
-    //     // Do a crossover
-    //     temp_fitness = crossover(
-    //         size, 
-    //         edges, 
-    //         weights,
-    //         edge_count_list,
-    //         color_count[parent1], 
-    //         color_count[parent2], 
-    //         colors[parent1], 
-    //         colors[parent2], 
-    //         target_color_count,
-    //         child, 
-    //         &child_colors
-    //     );
-
-    //     // LOGD("\n        child with fitness %2d:   ", temp_fitness);
-    //     // for(int j = 0; j < target_color_count; j++) {
-    //     //     LOGDSTR(" | ");
-    //     //     for(int k = 0; k < size; k++)
-    //     //         if(child[j][k])
-    //     //             LOGD("%2d ", k);
-    //     // }
-    //     // LOGDSTR("\n");
-
-    //     // Check if the child is better than any of the parents.
-    //     if (temp_fitness <= fitness[parent1] && child_colors <= color_count[parent1])
-    //         dead_parent = parent1;
-    //     else if (temp_fitness <= fitness[parent2] && child_colors <= color_count[parent2])
-    //         dead_parent = parent2;
-    //     else if (rand()%100 < 15)
-    //         dead_parent = parent1 == best ? parent2 : parent1;
-
-    //     // Replace a dead parent.
-    //     if(dead_parent > -1) {
-    //         // LOGD("Child replaced the individual %d.\n", dead_parent);
-    //         memmove(colors[dead_parent], child, size*base_color_count);
-    //         color_count[dead_parent] = child_colors;
-    //         fitness[dead_parent] = temp_fitness;
-
-    //         if(fitness[best] >= temp_fitness) {
-    //             best = dead_parent;
-    //             last_solution_time = ((double)(clock() - start_time))/CLOCKS_PER_SEC;
-    //         }
-    //     }
-
-    //     // Make the target harder if it was found.
-    //     if(temp_fitness == 0) {
-    //         // is_valid(size, edges, child_colors, child);
-    //         target_color_count = child_colors - 1;
-
-    //         if(target_color_count == 0)
-    //             break;
-    //     }
-    // }
-
-    // if(last_solution_time == -1)
-    //     last_solution_time = ((double)(clock() - start_time))/CLOCKS_PER_SEC;
-
-    *best_fitness = fitness[best];
-    *best_solution_time = last_solution_time;
-    memcpy(best_solution, colors[best], size*base_color_count);
-
-    // genetic_time += ((double)(clock() - start_time))/CLOCKS_PER_SEC;
-    return color_count[best];
+    return color_count[best_individual];
 }
 
 int get_rand_color(int size, int colors_used, char used_color_list[]) {
@@ -413,7 +296,7 @@ int crossover(
     char child[][size],
     int *child_color_count
 ) {
-    clock_t start = clock();
+    // clock_t start = clock();
 
     // max number of colors of the two parents.
     int max_color_num = color_num1 > color_num2 ? color_num1 : color_num2;
@@ -610,7 +493,6 @@ int crossover(
     if(pool_count > 0) {
         // LOGDSTR("        Randomly allocate the pool in the colors.");
         int color_num;
-        int temp_count[size];
         for(i = 0; i < size; i++) {
             if(pool[i]) {
                 color_num = rand()%target_color_count;
@@ -638,78 +520,56 @@ void* crossover_thread(void *param) {
     float last_solution_time = 0;
 
     int base_color_count = ((struct crossover_param_s*)param)->base_color_count;
+    atomic_int *target_color_count = ((struct crossover_param_s*)param)->target_color_count;
     int size = ((struct crossover_param_s*)param)->size;
     int max_gen_num = ((struct crossover_param_s*)param)->max_gen_num;
-    atomic_int *iter_count = ((struct crossover_param_s*)param)->iter_count;
-    char (*edges)[size][size] = ((struct crossover_param_s*)param)->edges;
-    int (*weights)[size] = ((struct crossover_param_s*)param)->weights;
-    int (*edge_count_list)[size] = ((struct crossover_param_s*)param)->edge_count_list;
-    int (*color_count)[size] = ((struct crossover_param_s*)param)->color_count;
-    int (*fitness)[size] = ((struct crossover_param_s*)param)->fitness;
-    char (*colors)[100][base_color_count][size] = ((struct crossover_param_s*)param)->colors;
+    char (*edges)[size][size] = (char(*)[][size])((struct crossover_param_s*)param)->edges;
+    int (*weights)[size] = (int(*)[])((struct crossover_param_s*)param)->weights;
+    int (*edge_count_list)[size] = (int(*)[])((struct crossover_param_s*)param)->edge_count_list;
+    int (*color_count)[100] = (int(*)[])((struct crossover_param_s*)param)->color_count;
+    int (*fitness)[100] = (int(*)[])((struct crossover_param_s*)param)->fitness;
+    char (*colors)[100][base_color_count][size] = (char(*)[][base_color_count][size])((struct crossover_param_s*)param)->colors;
+    atomic_bool (*used_parents)[size] = (atomic_bool(*)[size])((struct crossover_param_s*)param)->used_parents;
 
     // Keep generating solutions for max_gen_num generations.
     char child[base_color_count][size];
-    int target_color_count = base_color_count;
+    int temp_target_color = *target_color_count;
     int parent1, parent2, dead_parent, child_colors, temp_fitness, best = 0;
-    for(; (*iter_count) < max_gen_num; (*iter_count)++) {
-        // LOGD("\nDoing Crossover %d: target color count %d\n", i, target_color_count);
+    for(int i = 0; i < max_gen_num; i++) {
+        temp_target_color = *target_color_count;
 
         // Initialize the child
         memset(child, 0, size*base_color_count);
 
         // Pick 2 random parents
         dead_parent = -1;
-        parent1 = rand()%100;
-        do { parent2 = rand()%100; } while (parent1 == parent2);
-
-        // LOGD("    Chosen Parents:\n        individual %2d fitness %2d:", parent1, fitness[parent1]);
-        // for(int j = 0; j < color_count[parent1]; j++) {
-        //     LOGDSTR(" | ");
-        //     for(int k = 0; k < size; k++)
-        //         if(colors[parent1][j][k])
-        //             LOGD("%2d ", k);
-        // }
-
-        // LOGD("\n        individual %2d fitness %2d:", parent2, fitness[parent2]);
-        // for(int j = 0; j < color_count[parent2]; j++) {
-        //     LOGDSTR(" | ");
-        //     for(int k = 0; k < size; k++)
-        //         if(colors[parent2][j][k])
-        //             LOGD("%2d ", k);
-        // }
+        do { parent1 = rand()%100; } while ((*used_parents)[parent1]);
+        (*used_parents)[parent1] = 1;
+        do { parent2 = rand()%100; } while ((*used_parents)[parent2]);
+        (*used_parents)[parent2] = 1;
 
         // Do a crossover
         temp_fitness = crossover(
             size, 
-            edges, 
-            weights,
-            edge_count_list,
+            *edges, 
+            *weights,
+            *edge_count_list,
             (*color_count)[parent1], 
             (*color_count)[parent2], 
             (*colors)[parent1], 
             (*colors)[parent2], 
-            target_color_count,
+            temp_target_color,
             child, 
             &child_colors
         );
-
-        // LOGD("\n        child with fitness %2d:   ", temp_fitness);
-        // for(int j = 0; j < target_color_count; j++) {
-        //     LOGDSTR(" | ");
-        //     for(int k = 0; k < size; k++)
-        //         if(child[j][k])
-        //             LOGD("%2d ", k);
-        // }
-        // LOGDSTR("\n");
 
         // Check if the child is better than any of the parents.
         if (temp_fitness <= (*fitness)[parent1] && child_colors <= (*color_count)[parent1])
             dead_parent = parent1;
         else if (temp_fitness <= (*fitness)[parent2] && child_colors <= (*color_count)[parent2])
             dead_parent = parent2;
-        else if (rand()%100 < 15)
-            dead_parent = parent1 == best ? parent2 : parent1;
+        // else if (rand()%100 < 15)
+        //     dead_parent = (parent1 == best) ? parent2 : parent1;
 
         // Replace a dead parent.
         if(dead_parent > -1) {
@@ -725,12 +585,19 @@ void* crossover_thread(void *param) {
         }
 
         // Make the target harder if it was found.
-        if(temp_fitness == 0) {
-            // is_valid(size, edges, child_colors, child);
-            target_color_count = child_colors - 1;
-
-            if(target_color_count == 0)
+        if(temp_fitness == 0 && child_colors <= *target_color_count) {
+            *target_color_count = child_colors - 1;
+            if(*target_color_count == 0)
                 break;
         }
+
+        (*used_parents)[parent1] = 0;
+        (*used_parents)[parent2] = 0;
     }
+
+    struct crossover_result_s *result = malloc(sizeof(struct crossover_result_s));
+    result->best_i = best;
+    result->best_time = last_solution_time;
+
+    return (void*)result;
 }

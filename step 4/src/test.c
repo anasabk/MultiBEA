@@ -18,6 +18,8 @@
 struct test_param {
     int size;
     int target_color;
+    int multiverse_size;
+    int crossover_count;
     char graph_filename[128];
     char weight_filename[128];
     char result_filename[128];
@@ -29,6 +31,8 @@ atomic_int reading;
 
 void* test_graph(void *param) {
     int size = ((struct test_param*)param)->size;
+    int multiverse_size = ((struct test_param*)param)->multiverse_size;
+    int crossover_count = ((struct test_param*)param)->crossover_count;
     char *graph_filename = ((struct test_param*)param)->graph_filename;
     char *weight_filename = ((struct test_param*)param)->weight_filename;
     char *result_filename = ((struct test_param*)param)->result_filename;
@@ -72,17 +76,18 @@ void* test_graph(void *param) {
             edges,
             weights,
             greedy_color_count,
-            30000,
+            crossover_count,
             temp_colors,
             &temp_fitness,
-            &temp_time
+            &temp_time,
+            multiverse_size
         );
 
         total_color_count += temp_color_count;
         total_fitness += temp_fitness;
         total_time += temp_time;
 
-        if ((temp_color_count < best_color_count && temp_fitness == 0) ||
+        if ((temp_fitness == 0 && (temp_color_count < best_color_count || best_fitness > 0)) ||
             temp_fitness < best_fitness || 
             (temp_fitness == best_fitness && temp_color_count < best_color_count) ||
             (temp_fitness == best_fitness && temp_color_count <= best_color_count && temp_time < best_time)) 
@@ -105,25 +110,12 @@ void* test_graph(void *param) {
             "    avg values:\n"\
             "        time    = %lf\n"\
             "        colors  = %f\n",
-            // "    Time used: \n"\
-            // "        Total:          %f%%\n"\
-            // "        Crossover:      %f%%\n"\
-            // "        Color Merge:    %f%%\n"\
-            // "        Local Search:   %f%%\n"\
-            // "        Vertex Removal: %f%%\n"\
-            // "        count conflicts:%f%%\n",
             graph_filename, 
             greedy_color_count,
             best_time, 
             best_color_count,
             total_time/iteration_count, 
             total_color_count/((float)iteration_count)
-            // genetic_time,
-            // crossover_time,
-            // merge_colors_time,
-            // local_search_time,
-            // rm_vertex_time,
-            // count_conflicts_time
         );
 
     } else {
@@ -144,7 +136,7 @@ void* test_graph(void *param) {
 
 
 int main(int argc, char *argv[]) {
-    if(argc < 2) {
+    if(argc < 5) {
         printf("Too few arguments.\n");
         return 0;
     }
@@ -177,6 +169,10 @@ int main(int argc, char *argv[]) {
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 2048L*1024L*1024L);
 
+    int num_of_threads = atoi(argv[2]);
+    int multiverse_size = atoi(argv[3]);
+    int crossover_count = atoi(argv[4]);
+
     char buffer[256];
     struct test_param *temp_param;
     while(!feof(test_list_file)) {
@@ -187,6 +183,8 @@ int main(int argc, char *argv[]) {
         buffer[strcspn(buffer, "\n")] = 0;
 
         temp_param->size = atoi(strtok(buffer, " "));
+        temp_param->multiverse_size = multiverse_size;
+        temp_param->crossover_count = crossover_count;
         strcpy(temp_param->graph_filename, strtok(NULL, " "));
         strcpy(temp_param->weight_filename, strtok(NULL, " "));
         strcpy(temp_param->result_filename, strtok(NULL, " "));
@@ -195,7 +193,7 @@ int main(int argc, char *argv[]) {
         // test_graph(temp_param);
         // break;
 
-        while (thread_count == 10);
+        while (thread_count == num_of_threads);
     }
 
     while (thread_count > 0);
