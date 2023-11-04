@@ -2,30 +2,30 @@
 graph resources/graph_datasets/GEOM20b.edgelist:
     base color: 5
     best solution:
-        time    = 0.000124
+        time    = 0.000006
         colors  = 3
     avg values:
-        time    = 0.016320
+        time    = 0.000252
         colors  = 3.000000
 
 
 0 5
 0 9
-0 10
 0 11
 0 12
 0 14
 0 15
 0 18
-1 1
 1 2
 1 3
-1 4
+1 7
 1 8
+1 10
+1 13
 1 19
+2 1
+2 4
 2 6
-2 7
-2 13
 2 16
 2 17
 2 20
