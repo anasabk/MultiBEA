@@ -10,7 +10,7 @@ bool read_graph(const char* filename, int size, char edges[][size]);
 
 bool read_weights(const char* filename, int size, int weights[]);
 
-bool is_valid(int size, const char edges[size][size], int color_num, const char colors[color_num][size]);
+bool is_valid(int size, const char edges[][size], int color_num, const char colors[][size]);
 
 int count_edges(int size, const char edges[][size], int count[]);
 

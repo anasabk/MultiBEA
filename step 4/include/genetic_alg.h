@@ -47,6 +47,7 @@ void graph_color_random(int size, const char edges[][size], char colors[][size],
  * @param best_solution Output pointer to the result color matrix.
  * @param best_fitness Output pointer to the result solution fitness.
  * @param best_solution_time Output pointer to the time it took to find the last solution.
+ * @param thread_num Number of concurrent crossover threads.
  * @returns Number of colors of the solution.
  */
 int graph_color_genetic(

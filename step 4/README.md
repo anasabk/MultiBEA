@@ -4,7 +4,7 @@ For each of the datasets below, 30000 crossover iterations were done for each so
 
 Example datasets used are in the [link](https://cedric.cnam.fr/~porumbed/graphs/).
 
-| Dataset Name | # of Vertices |  # of Edges   | Upperbound | Base k | Best k | Avg k | Best k Time | Avg k Time  | InCEA best k | InCEA Best k Time |
+| Dataset Name | # of Vertices |  # of Edges   | Lowerbound | Base k | Best k | Avg k | Best k Time | Avg k Time  | InCEA best k | InCEA Best k Time |
 | ------------ | ------------- | ------------- | ---------- | ------ | ------ | ----- | ----------- | ----------- | ------------ | ----------------- |
 | myciel5g     | 47            | 236           | 6          | 21     | 6      | 6     | 0.001319    | 0.010351    | 6            | 4                 |
 | myciel5gb    | 47            | 236           | 6          | 6      | 6      | 6     | 0.000098    | 0.000488    | 6            | 4                 |

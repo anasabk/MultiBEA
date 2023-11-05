@@ -62,7 +62,7 @@ bool read_weights(const char* filename, int size, int weights[]) {
     return true;
 }
 
-bool is_valid(int size, const char edges[size][size], int color_num, const char colors[color_num][size]) {
+bool is_valid(int size, const char edges[][size], int color_num, const char colors[][size]) {
     // Iterate through vertices.
     int i, j, k, is_colored;
     for(i = 0; i < size; i++) {
