@@ -1,22 +1,18 @@
 c FILE: DSJR500.1
-c
 c SOURCE: David Johnson (dsj@research.att.com)
-c
-c DESCRIPTION: Geometric random graph.  DSJRx.y[c] is 
+c DESCRIPTION: Geometric random graph.  DSJRx.y[c] is
 c              a geometric graph with x nodes randomly
-c              distributed in the unit square, and and edge 
+c              distributed in the unit square, and and edge
 c              if the length of the corresponding line is
-c              less than y.  This graph is then complemented 
+c              less than y.  This graph is then complemented
 c              if a "c" ends the file name.  Graphs were used in
-c 
 c              "Optimization by Simulated Annealing: An
 c               Experimental Evaluation; Part II, Graph
 c               Coloring and Number Partitioning" by
-c              David S. Johnson, Cecilia R. Aragon, 
+c              David S. Johnson, Cecilia R. Aragon,
 c              Lyle A. McGeoch and Catherine Schevon
 c              Operations Research, 39, 378-406 (1991)
-c
-p edge 500 7110
+p edge 500 3555
 e 12 9
 e 16 14
 e 18 11
