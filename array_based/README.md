@@ -1,4 +1,4 @@
-# Step 4: Support Weighted Graphs and Add Local Search Operation
+# Array Based Implementation of InCEA algorithm
 ## Test results:
 For each of the datasets below, 30000 crossover iterations were done for each solution, and 10 solutions were calculated. The best and average results are put in the table.
 
