@@ -1,0 +1,21 @@
+
+graph resources/graph_datasets/goodgraph.edgelist:
+    base color: 4
+    best solution:
+        time    = 0.001585
+        colors  = 3
+    avg values:
+        time    = 0.001585
+        colors  = 3.000000
+
+
+0 1
+0 3
+0 5
+1 2
+1 7
+1 8
+1 10
+2 4
+2 6
+2 9
