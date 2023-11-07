@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <stdatomic.h>
 #include <pthread.h>
+#include <math.h>
 
 #include "genetic_alg.h"
 #include "stdgraph.h"
@@ -68,7 +69,7 @@ int graph_color_genetic(
         base_color_count,
         &target_color,
         size,
-        max_gen_num/thread_num,
+        max_gen_num/sqrt(thread_num),
         (char*)edges,
         weights,
         edge_count_list,
@@ -89,8 +90,12 @@ int graph_color_genetic(
     int best_individual = 0;
     double best_time = 0;
     for(int i = 0; i < thread_num; i++) {
-        if ((fitness[results[i]->best_i] == 0 && (color_count[results[i]->best_i] < color_count[best_individual] || fitness[best_individual] > 0)) ||
-            (color_count[results[i]->best_i] <= color_count[best_individual] && fitness[results[i]->best_i] <= fitness[best_individual])) {
+        // if ((fitness[results[i]->best_i] == 0 && (color_count[results[i]->best_i] < color_count[best_individual] || fitness[best_individual] > 0)) ||
+        //     (color_count[results[i]->best_i] <= color_count[best_individual] && fitness[results[i]->best_i] <= fitness[best_individual])) {
+        if (fitness[results[i]->best_i] < fitness[best_individual] ||
+            (fitness[results[i]->best_i] == fitness[best_individual] && color_count[results[i]->best_i] < color_count[best_individual]) ||
+            (fitness[results[i]->best_i] == fitness[best_individual] && color_count[results[i]->best_i] == color_count[best_individual] && results[i]->best_time < best_time)
+        ) {
             best_individual = results[i]->best_i;
             best_time = results[i]->best_time;
         }
@@ -547,7 +552,9 @@ void* crossover_thread(void *param) {
             (*color_count)[dead_parent] = child_colors;
             (*fitness)[dead_parent] = temp_fitness;
 
-            if((*fitness)[best] >= temp_fitness) {
+            if (temp_fitness < (*fitness)[best] ||
+                (temp_fitness == (*fitness)[best] && child_colors < (*color_count)[best])
+            ) {
                 best = dead_parent;
                 last_solution_time = ((double)(clock() - start_time))/CLOCKS_PER_SEC;
             }
@@ -556,8 +563,8 @@ void* crossover_thread(void *param) {
         // Make the target harder if it was found.
         if(temp_fitness == 0 && child_colors <= *target_color_count) {
             *target_color_count = child_colors - 1;
-            if(*target_color_count == 0)
-                break;
+            // if(*target_color_count == 0)
+            //     break;
         }
 
         (*used_parents)[parent1] = 0;

@@ -46,7 +46,7 @@ void* test_graph(void *param) {
     }
 
     int weights[size];
-    if(!strcmp(weight_filename, "unweighted")) {
+    if(strncmp(weight_filename, "unweighted", 10) != 0) {
         if(!read_weights(weight_filename, size, weights)) {
             printf("Could not initialize graph weights from %s, exitting ...\n", weight_filename);
             free(param);
@@ -92,10 +92,9 @@ void* test_graph(void *param) {
         total_fitness += temp_fitness;
         total_time += temp_time;
 
-        if ((temp_fitness == 0 && (temp_color_count < best_color_count || best_fitness > 0)) ||
-            temp_fitness < best_fitness || 
+        if (temp_fitness < best_fitness ||
             (temp_fitness == best_fitness && temp_color_count < best_color_count) ||
-            (temp_fitness == best_fitness && temp_color_count <= best_color_count && temp_time < best_time)) 
+            (temp_fitness == best_fitness && temp_color_count == best_color_count && temp_time < best_time)) 
         {
             best_color_count = temp_color_count;
             best_fitness = temp_fitness;
@@ -105,31 +104,49 @@ void* test_graph(void *param) {
     }
 
     char buffer[512];
-    if(is_valid(size, edges, greedy_color_count, best_colors)) {
-        sprintf(buffer,
-            "\ngraph %s:\n"\
-            "    base color: %d\n"\
-            "    best solution:\n"\
-            "        time    = %lf\n"\
-            "        colors  = %d\n"\
-            "    avg values:\n"\
-            "        time    = %lf\n"\
-            "        colors  = %f\n",
-            graph_filename, 
-            greedy_color_count,
-            best_time, 
-            best_color_count,
-            total_time/iteration_count, 
-            total_color_count/((float)iteration_count)
-        );
+    // if(is_valid(size, edges, greedy_color_count, best_colors)) {
+    //     sprintf(buffer,
+    //         "\ngraph %s:\n"\
+    //         "    base color: %d\n"\
+    //         "    best solution:\n"\
+    //         "        time    = %lf\n"\
+    //         "        colors  = %d\n"\
+    //         "    avg values:\n"\
+    //         "        time    = %lf\n"\
+    //         "        colors  = %f\n",
+    //         graph_filename, 
+    //         greedy_color_count,
+    //         best_time, 
+    //         best_color_count,
+    //         total_time/iteration_count, 
+    //         total_color_count/((float)iteration_count)
+    //     );
 
-    } else {
-        sprintf(buffer, 
-            "\ngraph %s:\n"\
-            "Could not find a solution. Base color: %d / Best fitness: %d.\n", 
-            graph_filename, greedy_color_count, best_fitness
-        );
-    }
+    // } else {
+    //     sprintf(buffer, 
+    //         "\ngraph %s:\n"\
+    //         "Could not find a solution. Base color: %d / Best fitness: %d.\n", 
+    //         graph_filename, greedy_color_count, best_fitness
+    //     );
+    // }
+
+    is_valid(size, edges, greedy_color_count, best_colors);
+    sprintf(buffer,
+        "\ngraph %s:\n"\
+        "    base color: %d\n"\
+        "    best solution:\n"\
+        "        time    = %lf\n"\
+        "        colors  = %d\n"\
+        "    avg values:\n"\
+        "        time    = %lf\n"\
+        "        colors  = %f\n",
+        graph_filename, 
+        greedy_color_count,
+        best_time, 
+        best_color_count,
+        total_time/iteration_count, 
+        total_color_count/((float)iteration_count)
+    );
 
     printf("%s\n", buffer);
     print_colors(result_filename, buffer, greedy_color_count, size, best_colors);
@@ -194,9 +211,9 @@ int main(int argc, char *argv[]) {
         strcpy(temp_param->weight_filename, strtok(NULL, " "));
         strcpy(temp_param->result_filename, strtok(NULL, " "));
 
-        // pthread_create(&temp, &attr, test_graph, temp_param);
-        test_graph(temp_param);
-        break;
+        pthread_create(&temp, &attr, test_graph, temp_param);
+        // test_graph(temp_param);
+        // break;
 
         while (thread_count == num_of_threads);
     }
