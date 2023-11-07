@@ -196,7 +196,7 @@ void local_search(
 ) {
     int conflict_count[size];
     memset(conflict_count, 0, size*sizeof(int));
-    
+
     // int competition[size];
     // memset(competition, 0, size*sizeof(int));
 
@@ -414,10 +414,10 @@ int crossover(
     last_color = child_color + 1;
 
     int fitness = 0;
-    int competition[size];
-    memset(competition, 0, size*sizeof(int));
+    // int competition[size];
+    // memset(competition, 0, size*sizeof(int));
     
-    // If the pool is not empty, randomly allocate the remaining vertices in the colors.
+    // Another last Search Back.
     if(pool_count > 0) {
         LOGDSTR("\n        Another last Search Back:");
         // Search back to try to place vertices in the pool in previous colors.
@@ -441,6 +441,7 @@ int crossover(
         }
     }
 
+    // If the pool is not empty, randomly allocate the remaining vertices in the colors.
     if(pool_count > 0) {
         LOGDSTR("\n        Randomly allocate the pool in the colors.");
         int color_num;

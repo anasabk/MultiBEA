@@ -46,11 +46,16 @@ void* test_graph(void *param) {
     }
 
     int weights[size];
-    if(!read_weights(weight_filename, size, weights)) {
-        printf("Could not initialize graph weights from %s, exitting ...\n", weight_filename);
-        free(param);
-        thread_count--;
-        return NULL;
+    if(!strcmp(weight_filename, "unweighted")) {
+        if(!read_weights(weight_filename, size, weights)) {
+            printf("Could not initialize graph weights from %s, exitting ...\n", weight_filename);
+            free(param);
+            thread_count--;
+            return NULL;
+        }
+    } else {
+        for(int i = 0; i < size; i++) 
+            weights[i] = 1;
     }
 
     srand(time(NULL));
@@ -67,11 +72,7 @@ void* test_graph(void *param) {
     memset(best_colors, 0, max_edge_count*size);
 
     int greedy_color_count = graph_color_greedy(size, edges, temp_colors, max_edge_count);
-<<<<<<< Updated upstream
     int iteration_count = 10;
-=======
-    int iteration_count = 1;
->>>>>>> Stashed changes
     for(int k = 0; k < iteration_count; k++) {
         memset(temp_colors, 0, max_edge_count*size);
 
