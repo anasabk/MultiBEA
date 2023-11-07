@@ -67,7 +67,7 @@ void* test_graph(void *param) {
     memset(best_colors, 0, max_edge_count*size);
 
     int greedy_color_count = graph_color_greedy(size, edges, temp_colors, max_edge_count);
-    int iteration_count = 5;
+    int iteration_count = 10;
     for(int k = 0; k < iteration_count; k++) {
         memset(temp_colors, 0, max_edge_count*size);
 

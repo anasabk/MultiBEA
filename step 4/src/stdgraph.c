@@ -129,7 +129,7 @@ void print_colors(const char *filename, const char *header, int max_color_num, i
     for(int j = 0; j < max_color_num; j++)
         for(int k = 0; k < size; k++)
             if(colors[j][k]) 
-                fprintf(fresults, "%d %d\n", j, k + 1);
+                fprintf(fresults, "%d %d\n", j, k);
 
     fclose(fresults);
 }
