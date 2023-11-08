@@ -64,10 +64,14 @@ int graph_color_genetic(
     atomic_bool used_parents[size];
     memset(used_parents, 0, size*sizeof(atomic_bool));
 
+    pthread_mutex_t target_color_m = PTHREAD_MUTEX_INITIALIZER;
     atomic_int target_color = base_color_count;
+    pthread_mutex_t best_i_m = PTHREAD_MUTEX_INITIALIZER;
+    atomic_int best_i = 0;
     struct crossover_param_s temp_param = {
         base_color_count,
         &target_color,
+        &best_i,
         size,
         max_gen_num/sqrt(thread_num),
         (char*)edges,
@@ -87,26 +91,26 @@ int graph_color_genetic(
     for(int i = 0; i < thread_num; i++)
         pthread_join(thread_id[i], (void**)&results[i]);
 
-    int best_individual = 0;
+    // int best_individual = 0;
     double best_time = 0;
     for(int i = 0; i < thread_num; i++) {
         // if ((fitness[results[i]->best_i] == 0 && (color_count[results[i]->best_i] < color_count[best_individual] || fitness[best_individual] > 0)) ||
         //     (color_count[results[i]->best_i] <= color_count[best_individual] && fitness[results[i]->best_i] <= fitness[best_individual])) {
-        if (fitness[results[i]->best_i] < fitness[best_individual] ||
-            (fitness[results[i]->best_i] == fitness[best_individual] && color_count[results[i]->best_i] < color_count[best_individual]) ||
-            (fitness[results[i]->best_i] == fitness[best_individual] && color_count[results[i]->best_i] == color_count[best_individual] && results[i]->best_time < best_time)
-        ) {
-            best_individual = results[i]->best_i;
+        // if (fitness[results[i]->best_i] < fitness[best_individual] ||
+        //     (fitness[results[i]->best_i] == fitness[best_individual] && color_count[results[i]->best_i] < color_count[best_individual]) ||
+        //     (fitness[results[i]->best_i] == fitness[best_individual] && color_count[results[i]->best_i] == color_count[best_individual] && results[i]->best_time < best_time)
+        // ) {
+        if(best_i == results[i]->best_i) {
             best_time = results[i]->best_time;
         }
         free(results[i]);
     }
 
-    *best_fitness = fitness[best_individual];
+    *best_fitness = fitness[best_i];
     *best_solution_time = best_time;
-    memcpy(best_solution, colors[best_individual], size*base_color_count);
+    memcpy(best_solution, colors[best_i], size*base_color_count);
 
-    return color_count[best_individual];
+    return color_count[best_i];
 }
 
 int get_rand_color(int size, int colors_used, char used_color_list[]) {
@@ -479,6 +483,7 @@ void* crossover_thread(void *param) {
 
     int base_color_count = ((struct crossover_param_s*)param)->base_color_count;
     atomic_int *target_color_count = ((struct crossover_param_s*)param)->target_color_count;
+    atomic_int *best_i = ((struct crossover_param_s*)param)->best_i;
     int size = ((struct crossover_param_s*)param)->size;
     int max_gen_num = ((struct crossover_param_s*)param)->max_gen_num;
     char (*edges)[size][size] = (char(*)[][size])((struct crossover_param_s*)param)->edges;
@@ -540,10 +545,12 @@ void* crossover_thread(void *param) {
         // Check if the child is better than any of the parents.
         if (temp_fitness <= (*fitness)[parent1] && child_colors <= (*color_count)[parent1])
             dead_parent = parent1;
+
         else if (temp_fitness <= (*fitness)[parent2] && child_colors <= (*color_count)[parent2])
             dead_parent = parent2;
-        // else if (rand()%100 < 15)
-        //     dead_parent = (parent1 == best) ? parent2 : parent1;
+
+        else if (random()%1000 < 1)
+            dead_parent = (parent1 == *best_i) ? parent2 : parent1;
 
         // Replace a dead parent.
         if(dead_parent > -1) {
@@ -552,9 +559,10 @@ void* crossover_thread(void *param) {
             (*color_count)[dead_parent] = child_colors;
             (*fitness)[dead_parent] = temp_fitness;
 
-            if (temp_fitness < (*fitness)[best] ||
-                (temp_fitness == (*fitness)[best] && child_colors < (*color_count)[best])
+            if (temp_fitness < (*fitness)[*best_i] ||
+                (temp_fitness == (*fitness)[*best_i] && child_colors < (*color_count)[*best_i])
             ) {
+                *best_i = dead_parent;
                 best = dead_parent;
                 last_solution_time = ((double)(clock() - start_time))/CLOCKS_PER_SEC;
             }

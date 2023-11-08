@@ -59,6 +59,7 @@ void* test_graph(void *param) {
     }
 
     srand(time(NULL));
+    srandom(time(NULL));
 
     printf("Testing the dataset %s:\n", graph_filename);
 

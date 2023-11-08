@@ -7,6 +7,7 @@
 struct crossover_param_s {
     int base_color_count;
     atomic_int *target_color_count;
+    atomic_int *best_i;
     int size;
     int max_gen_num;
     char *edges;
