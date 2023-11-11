@@ -6,6 +6,12 @@
 #include <stdbool.h>
 
 
+extern double is_valid_time;
+extern double count_edges_time;
+extern double graph_color_greedy_time;
+extern double count_conflicts_time;
+
+
 bool read_graph(const char* filename, int size, char edges[][size]);
 
 bool read_weights(const char* filename, int size, int weights[]);

@@ -15,6 +15,7 @@ struct crossover_param_s {
     int *edge_count_list;
     int *color_count;
     int *fitness;
+    int *uncolored;
     char *colors;
     atomic_bool *used_parents;
 };
@@ -23,6 +24,18 @@ struct crossover_result_s {
     int best_i;
     double best_time;
 };
+
+
+
+extern double graph_color_genetic_time;
+extern double get_rand_color_time;
+extern double graph_color_random_time;
+extern double merge_colors_time;
+extern double rm_vertex_time;
+extern double search_back_time;
+extern double local_search_time;
+extern double crossover_time;
+extern double crossover_thread_time;
 
 
 /**
@@ -60,6 +73,7 @@ int graph_color_genetic(
     char best_solution[][size],
     int *best_fitness,
     float *best_solution_time,
+    int *uncolored_num,
     int thread_num
 );
 
@@ -149,7 +163,8 @@ int crossover(
     const char parent2[][size], 
     int target_color_count,
     char child[][size],
-    int *child_color_count
+    int *child_color_count,
+    int *uncolored
 );
 
 

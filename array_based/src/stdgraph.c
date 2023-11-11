@@ -10,6 +10,12 @@
 #include "common.h"
 
 
+double is_valid_time = 0;
+double count_edges_time = 0;
+double graph_color_greedy_time = 0;
+double count_conflicts_time = 0;
+
+
 bool read_graph(const char* filename, int size, char edges[][size]) {
     FILE *fp = fopen(filename, "r");
     
@@ -29,9 +35,9 @@ bool read_graph(const char* filename, int size, char edges[][size]) {
         if(saveptr[0] == 0)
             break;
 
-        row = atoi(token);
+        row = atoi(token) - 1;
         token = strtok_r (NULL, " ", &saveptr);
-        column = atoi(token);
+        column = atoi(token) - 1;
 
         edges[row][column] = 1;
         edges[column][row] = 1;
@@ -63,6 +69,7 @@ bool read_weights(const char* filename, int size, int weights[]) {
 }
 
 bool is_valid(int size, const char edges[][size], int color_num, const char colors[][size]) {
+    clock_t start = clock();
     // Iterate through vertices.
     int i, j, k, is_colored;
     for(i = 0; i < size; i++) {
@@ -93,10 +100,12 @@ bool is_valid(int size, const char edges[][size], int color_num, const char colo
         }
     }
 
+    is_valid_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return true;
 }
 
 int count_edges(int size, const char edges[][size], int count[]) {
+    clock_t start = clock();
     for(int i = 0; i < size; i++)
         count[i] = 0;
 
@@ -112,6 +121,7 @@ int count_edges(int size, const char edges[][size], int count[]) {
         if(max_count < count[i])
             max_count = count[i];
 
+    count_edges_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return max_count;
 }
 
@@ -135,6 +145,7 @@ void print_colors(const char *filename, const char *header, int max_color_num, i
 }
 
 int graph_color_greedy(int size, const char edges[][size], char colors[][size], int max_color_possible) {
+    clock_t start = clock();
     // Create a random queue of vertices to propagate.
     int prob_queue[size];
     int i = 0;
@@ -176,6 +187,7 @@ int graph_color_greedy(int size, const char edges[][size], char colors[][size], 
         }
     }
 
+    graph_color_greedy_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return max_color + 1;
 }
 
@@ -183,10 +195,9 @@ int count_conflicts(
     int size, 
     const char color[], 
     const char edges[][size], 
-    // const int weights[], 
-    // int competition[], 
     int conflict_count[]
 ) {
+    clock_t start = clock();
     int i, j, total_conflicts = 0;
     for(i = 0; i < size; i++) {   // i = index of the vertex to search for conflicts.
         if(color[i]) { // Check if the vertex i has this color i.
@@ -194,13 +205,12 @@ int count_conflicts(
                 if(color[j] && edges[i][j]) { // Check if the vertex k has the color i and has an edge with the vertex i.
                     conflict_count[i]++;
                     conflict_count[j]++;
-                    // competition[i] += weights[j];
-                    // competition[j] += weights[i];
                     total_conflicts++;
                 }
             }
         }
     }
 
+    count_conflicts_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return total_conflicts;
 }
