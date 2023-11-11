@@ -4,6 +4,12 @@
 
 #include <stdatomic.h>
 
+
+typedef enum {
+    MIN_COST,
+    MIN_COLOR_COUNT
+} genetic_criteria_t;
+
 struct crossover_param_s {
     int base_color_count;
     atomic_int *target_color_count;
@@ -18,13 +24,13 @@ struct crossover_param_s {
     int *uncolored;
     char *colors;
     atomic_bool *used_parents;
+    genetic_criteria_t criteria;
 };
 
 struct crossover_result_s {
     int best_i;
     double best_time;
 };
-
 
 
 extern double graph_color_genetic_time;
@@ -74,7 +80,8 @@ int graph_color_genetic(
     int *best_fitness,
     float *best_solution_time,
     int *uncolored_num,
-    int thread_num
+    int thread_num,
+    genetic_criteria_t criteria
 );
 
 /**
@@ -128,10 +135,13 @@ void local_search(
     int size,
     const char edges[][size],
     const int weights[],
-    const int num_of_edges[],
+    const int degrees[],
+    int conflict_count[],
+    int *total_conflicts,
     char color[],
     char pool[],
-    int *pool_total
+    int *pool_total,
+    genetic_criteria_t criteria
 );
 
 
@@ -162,6 +172,7 @@ int crossover(
     const char parent1[][size], 
     const char parent2[][size], 
     int target_color_count,
+    genetic_criteria_t criteria,
     char child[][size],
     int *child_color_count,
     int *uncolored

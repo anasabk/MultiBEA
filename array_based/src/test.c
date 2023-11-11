@@ -66,7 +66,7 @@ void* test_graph(void *param) {
     int edge_count[size];
     const int max_edge_count = count_edges(size, edges, edge_count);
 
-    int temp_uncolored, total_uncolored = 0;
+    int temp_uncolored;
     float best_time = FLT_MAX, temp_time, total_time = 0;
     int best_fitness = __INT_MAX__, temp_fitness, total_fitness = 0;
     int best_color_count = __INT_MAX__, temp_color_count, total_color_count = 0;
@@ -76,6 +76,20 @@ void* test_graph(void *param) {
     int greedy_color_count = graph_color_greedy(size, edges, temp_colors, max_edge_count);
     int iteration_count = 10;
     for(int k = 0; k < iteration_count; k++) {
+        graph_color_genetic_time = 0;
+        get_rand_color_time = 0;
+        graph_color_random_time = 0;
+        merge_colors_time = 0;
+        rm_vertex_time = 0;
+        search_back_time = 0;
+        local_search_time = 0;
+        crossover_time = 0;
+        crossover_thread_time = 0;
+        is_valid_time = 0;
+        count_edges_time = 0;
+        graph_color_greedy_time = 0;
+        count_conflicts_time = 0;
+
         memset(temp_colors, 0, max_edge_count*size);
 
         temp_color_count = graph_color_genetic(
@@ -88,7 +102,8 @@ void* test_graph(void *param) {
             &temp_fitness,
             &temp_time,
             &temp_uncolored,
-            multiverse_size
+            multiverse_size,
+            MIN_COLOR_COUNT
         );
 
         total_color_count += temp_color_count;
@@ -107,32 +122,6 @@ void* test_graph(void *param) {
     }
 
     char buffer[512];
-    // if(is_valid(size, edges, greedy_color_count, best_colors)) {
-    //     sprintf(buffer,
-    //         "\ngraph %s:\n"\
-    //         "    base color: %d\n"\
-    //         "    best solution:\n"\
-    //         "        time    = %lf\n"\
-    //         "        colors  = %d\n"\
-    //         "    avg values:\n"\
-    //         "        time    = %lf\n"\
-    //         "        colors  = %f\n",
-    //         graph_filename, 
-    //         greedy_color_count,
-    //         best_time, 
-    //         best_color_count,
-    //         total_time/iteration_count, 
-    //         total_color_count/((float)iteration_count)
-    //     );
-
-    // } else {
-    //     sprintf(buffer, 
-    //         "\ngraph %s:\n"\
-    //         "Could not find a solution. Base color: %d / Best fitness: %d.\n", 
-    //         graph_filename, greedy_color_count, best_fitness
-    //     );
-    // }
-
     is_valid(size, edges, greedy_color_count, best_colors);
     sprintf(buffer,
         "\ngraph %s:\n"\
@@ -158,7 +147,6 @@ void* test_graph(void *param) {
     thread_count--;
     return NULL;
 }
-
 
 void test_weighted(int size, int crossover_count, float color_density, char *graph_filename, char *weight_filename, char *result_filename) {
     char edges[size][size];
@@ -230,7 +218,8 @@ void test_weighted(int size, int crossover_count, float color_density, char *gra
                     &temp_fitness,
                     &temp_time,
                     &temp_uncolored,
-                    4
+                    4,
+                    MIN_COST
                 );
 
                 total_color_count += temp_color_count;
@@ -252,85 +241,84 @@ void test_weighted(int size, int crossover_count, float color_density, char *gra
     printf("%s\n", buffer);
 }
 
-
 int main(int argc, char *argv[]) {
-    // if(argc < 5) {
-    //     printf("Too few arguments.\n");
-    //     return 0;
-    // }
+    if(argc < 5) {
+        printf("Too few arguments.\n");
+        return 0;
+    }
 
-    // const rlim_t kStackSize = 8192L * 1024L * 1024L;   // min stack size = 64 Mb
-    // struct rlimit rl;
-    // int result;
+    const rlim_t kStackSize = 8192L * 1024L * 1024L;   // min stack size = 64 Mb
+    struct rlimit rl;
+    int result;
 
-    // result = getrlimit(RLIMIT_STACK, &rl);
-    // if (result == 0)
-    // {
-    //     if (rl.rlim_cur < kStackSize)
-    //     {
-    //         rl.rlim_cur = kStackSize;
-    //         result = setrlimit(RLIMIT_STACK, &rl);
-    //         if (result != 0)
-    //         {
-    //             fprintf(stderr, "setrlimit returned result = %d\n", result);
-    //         }
-    //     }
-    // }
+    result = getrlimit(RLIMIT_STACK, &rl);
+    if (result == 0)
+    {
+        if (rl.rlim_cur < kStackSize)
+        {
+            rl.rlim_cur = kStackSize;
+            result = setrlimit(RLIMIT_STACK, &rl);
+            if (result != 0)
+            {
+                fprintf(stderr, "setrlimit returned result = %d\n", result);
+            }
+        }
+    }
 
-    // thread_count = 0;
-    // reading = 0;
+    thread_count = 0;
+    reading = 0;
 
-    // FILE *test_list_file = fopen(argv[1], "r");
+    FILE *test_list_file = fopen(argv[1], "r");
     
-    // pthread_attr_t attr;
-    // pthread_t temp;
-    // pthread_attr_init(&attr);
-    // pthread_attr_setstacksize(&attr, 2048L*1024L*1024L);
+    pthread_attr_t attr;
+    pthread_t temp;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 2048L*1024L*1024L);
 
-    // int num_of_threads = atoi(argv[2]);
-    // int multiverse_size = atoi(argv[3]);
-    // int crossover_count = atoi(argv[4]);
+    int num_of_threads = atoi(argv[2]);
+    int multiverse_size = atoi(argv[3]);
+    int crossover_count = atoi(argv[4]);
 
-    // char buffer[256];
-    // struct test_param *temp_param;
-    // while(!feof(test_list_file)) {
-    //     temp_param = malloc(sizeof(struct test_param));
+    char buffer[256];
+    struct test_param *temp_param;
+    while(!feof(test_list_file)) {
+        temp_param = malloc(sizeof(struct test_param));
 
-    //     thread_count++;
-    //     fgets(buffer, 256, test_list_file);
-    //     buffer[strcspn(buffer, "\n")] = 0;
+        thread_count++;
+        fgets(buffer, 256, test_list_file);
+        buffer[strcspn(buffer, "\n")] = 0;
 
-    //     temp_param->size = atoi(strtok(buffer, " "));
-    //     temp_param->multiverse_size = multiverse_size;
-    //     temp_param->crossover_count = crossover_count;
-    //     strcpy(temp_param->graph_filename, strtok(NULL, " "));
-    //     strcpy(temp_param->weight_filename, strtok(NULL, " "));
-    //     strcpy(temp_param->result_filename, strtok(NULL, " "));
+        temp_param->size = atoi(strtok(buffer, " "));
+        temp_param->multiverse_size = multiverse_size;
+        temp_param->crossover_count = crossover_count;
+        strcpy(temp_param->graph_filename, strtok(NULL, " "));
+        strcpy(temp_param->weight_filename, strtok(NULL, " "));
+        strcpy(temp_param->result_filename, strtok(NULL, " "));
 
-    //     // pthread_create(&temp, &attr, test_graph, temp_param);
-    //     test_graph(temp_param);
-    //     break;
+        pthread_create(&temp, &attr, test_graph, temp_param);
+        // test_graph(temp_param);
+        // break;
 
-    //     while (thread_count == num_of_threads);
-    // }
+        while (thread_count == num_of_threads);
+    }
 
-    // while (thread_count > 0);
+    while (thread_count > 0);
 
-    // fclose(test_list_file);
+    fclose(test_list_file);
 
-    printf("|   time    |  fitness   | uncolored |\n");
-    char buffer[128];
-    strcpy(buffer, "../graph_datasets/INCEA100.10.1.col");
-    test_weighted(100, 1000, 0.04, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    test_weighted(100, 1000, 0.08, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    test_weighted(100, 1000, 0.1, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    test_weighted(100, 1000, 0.15, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    test_weighted(100, 1000, 0.2, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    // printf("|   time    |  fitness   | uncolored |\n");
+    // char buffer[128];
+    // strcpy(buffer, "../graph_datasets/INCEA100.10.1.col");
+    // test_weighted(100, 1000, 0.04, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    // test_weighted(100, 1000, 0.08, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    // test_weighted(100, 1000, 0.1, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    // test_weighted(100, 1000, 0.15, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    // test_weighted(100, 1000, 0.2, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
 
-    strcpy(buffer, "../graph_datasets/INCEA200.10.1.col");
-    test_weighted(200, 1000, 0.04, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    test_weighted(200, 1000, 0.08, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    test_weighted(200, 1000, 0.1, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    test_weighted(200, 1000, 0.15, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    test_weighted(200, 1000, 0.2, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    // strcpy(buffer, "../graph_datasets/INCEA200.10.1.col");
+    // test_weighted(200, 1000, 0.04, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    // test_weighted(200, 1000, 0.08, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    // test_weighted(200, 1000, 0.1, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    // test_weighted(200, 1000, 0.15, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    // test_weighted(200, 1000, 0.2, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
 }

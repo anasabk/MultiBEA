@@ -45,9 +45,10 @@ int graph_color_genetic(
     int *best_fitness,
     float *best_solution_time,
     int *uncolored_num,
-    int thread_num
+    int thread_num,
+    genetic_criteria_t criteria
 ) {
-    clock_t start = clock();
+    // clock_t start = clock();
 
     // Count the degrees of each vertex
     int edge_count_list[size];
@@ -55,13 +56,13 @@ int graph_color_genetic(
 
     char colors[100][base_color_count][size];
     int color_count[100];
-    int fitness[100];
     int uncolored[100];
+    int fitness[100];
 
     // Initialize The arrays.
     memset(colors, 0, 100*base_color_count*size);
-    memset(fitness, 0, 100*sizeof(int));
     memset(uncolored, 0, 100*sizeof(int));
+    memset(fitness, 0, 100*sizeof(int));
 
     /**
      * Generate a random population, where each individual has
@@ -96,7 +97,8 @@ int graph_color_genetic(
         fitness,
         uncolored,
         (char*)colors,
-        used_parents
+        used_parents,
+        criteria
     };
 
     pthread_t thread_id[thread_num];
@@ -119,21 +121,21 @@ int graph_color_genetic(
     *best_solution_time = best_time;
     memcpy(best_solution, colors[best_i], size*base_color_count);
 
-    graph_color_genetic_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+    // graph_color_genetic_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return color_count[best_i];
 }
 
 int get_rand_color(int size, int colors_used, char used_color_list[]) {
-    clock_t start = clock();
+    // clock_t start = clock();
     if(colors_used >= size) {
-        get_rand_color_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+        // get_rand_color_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
         return -1;
 
     } else if(colors_used > size - 2) {
         for(int i = 0; i < size; i++) {
             if(!used_color_list[i]) {
                 used_color_list[i] = 1;
-                get_rand_color_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+                // get_rand_color_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
                 return i;
             }
         }
@@ -144,11 +146,11 @@ int get_rand_color(int size, int colors_used, char used_color_list[]) {
         temp = rand()%size;
         if(!used_color_list[temp]) {
             used_color_list[temp] = 1;
-            get_rand_color_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+            // get_rand_color_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
             return temp;
         }
     }
-    get_rand_color_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+    // get_rand_color_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
 }
 
 int merge_colors(
@@ -159,7 +161,7 @@ int merge_colors(
     int *pool_total,
     char used_vertex_list[]
 ) {
-    clock_t start = clock();
+    // clock_t start = clock();
     int total_used = 0;
     for(int i = 0; i < size; i++) {  // for every vertex
         if(!used_vertex_list[i]) { // if vertex is unused
@@ -179,7 +181,7 @@ int merge_colors(
         }
     }
 
-    merge_colors_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+    // merge_colors_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return total_used;
 }
 
@@ -193,7 +195,7 @@ void rm_vertex(
     int *total_conflicts,
     int *pool_total
 ) {
-    clock_t start = clock();
+    // clock_t start = clock();
     for(int i = 0; i < size; i++)
         if(color[i] && edges[vertex][i])
             conflict_count[i]--;
@@ -204,86 +206,45 @@ void rm_vertex(
 
     (*total_conflicts) -= conflict_count[vertex];
     conflict_count[vertex] = 0;
-    rm_vertex_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
-}
-
-void search_back(
-    int size,
-    const char edges[][size],
-    const int weights[],
-    const int num_of_edges[],
-    char color[],
-    char pool[],
-    int *pool_total
-) {
-    clock_t start = clock();
-    int conflict_count[size];
-    memset(conflict_count, 0, size*sizeof(int));
-
-    // Count the conflicts..
-    int total_conflicts = count_conflicts(
-        size,
-        color,
-        edges,
-        conflict_count
-    );
-
-    // Keep removing problematic vertices until all conflicts are gone.
-    int i, worst_vert = 0;
-    while(total_conflicts > 0) {
-        // Find the vertex with the most conflicts.
-        for(i = 0; i < size; i++) {
-            if (conflict_count[worst_vert] < conflict_count[i] ||
-                (conflict_count[worst_vert] == conflict_count[i] &&
-                num_of_edges[worst_vert] >= num_of_edges[i]))
-                worst_vert = i;
-        }
-
-        rm_vertex(
-            worst_vert,
-            size,
-            edges,
-            color,
-            pool,
-            conflict_count,
-            &total_conflicts,
-            pool_total
-        );
-    }
-
-    search_back_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+    // rm_vertex_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
 }
 
 void local_search(
     int size,
     const char edges[][size],
     const int weights[],
-    const int num_of_edges[],
+    const int degrees[],
+    int conflict_count[],
+    int *total_conflicts,
     char color[],
     char pool[],
-    int *pool_total
+    int *pool_total,
+    genetic_criteria_t criteria
 ) {
-    clock_t start = clock();
-    int conflict_count[size];
-    memset(conflict_count, 0, size*sizeof(int));
+    // clock_t start = clock();
+    // int conflict_count[size];
+    // memset(conflict_count, 0, size*sizeof(int));
 
-    // Count the conflicts..
-    int total_conflicts = count_conflicts(
-        size,
-        color,
-        edges,
-        conflict_count
-    );
+    // // Count the conflicts..
+    // int total_conflicts = count_conflicts(
+    //     size,
+    //     color,
+    //     edges,
+    //     conflict_count
+    // );
 
     // Keep removing problematic vertices until all conflicts are gone.
     int i, worst_vert = 0;
-    while(total_conflicts > 0) {
+    while(*total_conflicts > 0) {
         // Find the vertex with the most conflicts.
         for(i = 0; i < size; i++) {
             if (conflict_count[worst_vert] < conflict_count[i] ||
                 (conflict_count[worst_vert] == conflict_count[i] &&
-                weights[worst_vert] >= weights[i]))
+                ((weights[worst_vert] >= weights[i] && criteria == MIN_COST) ||
+                 (degrees[worst_vert] >= degrees[i] && criteria == MIN_COLOR_COUNT)))
+            ) {
                 worst_vert = i;
+            }
         }
 
         rm_vertex(
@@ -293,11 +254,11 @@ void local_search(
             color,
             pool,
             conflict_count,
-            &total_conflicts,
+            total_conflicts,
             pool_total
         );
     }
-    local_search_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+    // local_search_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
 }
 
 int crossover(
@@ -310,11 +271,12 @@ int crossover(
     const char parent1[][size], 
     const char parent2[][size], 
     int target_color_count,
+    genetic_criteria_t criteria,
     char child[][size],
     int *child_color_count,
     int *uncolored
 ) {
-    clock_t start = clock();
+    // clock_t start = clock();
     // max number of colors of the two parents.
     int max_color_num = color_num1 > color_num2 ? color_num1 : color_num2;
 
@@ -337,10 +299,13 @@ int crossover(
     memset(pool, 0, size);
     memset(pool_age, 0, size*sizeof(int));
 
+    int conflict_count[size];
+    memset(conflict_count, 0, size*sizeof(int));
+
     // Main loop that iterates over all of the colors of the parents.
     char const *parent_color_p[2];
     int color1, color2, last_color = 0;
-    int i, j, k, child_color = 0;
+    int i, j, k, h, child_color = 0, total_conflicts = 0;
     for(i = 0; i < max_iter_num && used_vertex_count < size; i++) {
         // Pick 2 random colors.
         color1 = get_rand_color(color_num1, i, used_color_list[0]);
@@ -369,14 +334,24 @@ int crossover(
                 used_vertex_list
             );
 
+            total_conflicts = count_conflicts(
+                size,
+                child[child_color],
+                edges,
+                conflict_count
+            );
+
             local_search(
                 size,
                 edges,
                 weights,
                 num_of_edges,
+                conflict_count,
+                &total_conflicts,
                 child[child_color],
                 pool,
-                &pool_count
+                &pool_count,
+                criteria
             );
 
         /**
@@ -401,14 +376,25 @@ int crossover(
                 pool[j] = 0;
                 pool_count--;
 
+                for(h = 0; h < size; h++) {
+                    if(child[k][h] && edges[h][j]) {
+                        conflict_count[h]++;
+                        conflict_count[j]++;
+                        total_conflicts++;
+                    }
+                }
+
                 local_search(
                     size,
                     edges,
                     weights,
                     num_of_edges,
+                    conflict_count,
+                    &total_conflicts,
                     child[k],
                     pool,
-                    &pool_count
+                    &pool_count,
+                    criteria
                 );
             }
         }
@@ -435,14 +421,25 @@ int crossover(
                 pool[j] = 0;
                 pool_count--;
 
+                for(h = 0; h < size; h++) {
+                    if(child[k][h] && edges[h][j]) {
+                        conflict_count[h]++;
+                        conflict_count[j]++;
+                        total_conflicts++;
+                    }
+                }
+
                 local_search(
                     size,
                     edges,
                     weights,
                     num_of_edges,
+                    conflict_count,
+                    &total_conflicts,
                     child[k],
                     pool,
-                    &pool_count
+                    &pool_count,
+                    criteria
                 );
             }
         }
@@ -471,7 +468,7 @@ int crossover(
 
     *uncolored = pool_count;
     *child_color_count = last_color;
-    crossover_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+    // crossover_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return fitness;
 }
 
@@ -492,6 +489,7 @@ void* crossover_thread(void *param) {
     int (*uncolored)[100] = (int(*)[])((struct crossover_param_s*)param)->uncolored;
     char (*colors)[100][base_color_count][size] = (char(*)[][base_color_count][size])((struct crossover_param_s*)param)->colors;
     atomic_bool (*used_parents)[size] = (atomic_bool(*)[size])((struct crossover_param_s*)param)->used_parents;
+    genetic_criteria_t criteria = ((struct crossover_param_s*)param)->criteria;
 
     // Keep generating solutions for max_gen_num generations.
     char child[base_color_count][size];
@@ -522,6 +520,7 @@ void* crossover_thread(void *param) {
             (*colors)[parent1], 
             (*colors)[parent2], 
             temp_target_color,
+            criteria,
             child, 
             &child_colors,
             &temp_uncolored
@@ -568,6 +567,6 @@ void* crossover_thread(void *param) {
     result->best_i = best;
     result->best_time = last_solution_time;
 
-    crossover_thread_time += ((double)(clock() - start_time))/CLOCKS_PER_SEC;
+    // crossover_thread_time += ((double)(clock() - start_time))/CLOCKS_PER_SEC;
     return (void*)result;
 }
