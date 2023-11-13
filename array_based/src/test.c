@@ -72,8 +72,11 @@ void* test_graph(void *param) {
     int best_color_count = __INT_MAX__, temp_color_count, total_color_count = 0;
     char best_colors[max_edge_count][size], temp_colors[max_edge_count][size];
     memset(best_colors, 0, max_edge_count*size);
+    memset(temp_colors, 0, max_edge_count*size);
 
     int greedy_color_count = graph_color_greedy(size, edges, temp_colors, max_edge_count);
+    is_valid(size, edges, greedy_color_count, temp_colors);
+
     int iteration_count = 10;
     for(int k = 0; k < iteration_count; k++) {
         graph_color_genetic_time = 0;
