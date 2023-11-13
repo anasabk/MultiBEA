@@ -331,41 +331,37 @@ int crossover(
                 conflict_count
             );
 
-            local_search(
-                size,
-                edges,
-                weights,
-                num_of_edges,
-                conflict_count,
-                &total_conflicts,
-                child[child_color],
-                pool,
-                &pool_count,
-                criteria
-            );
+            if(total_conflicts > 0) {
+                local_search(
+                    size,
+                    edges,
+                    weights,
+                    num_of_edges,
+                    conflict_count,
+                    &total_conflicts,
+                    child[child_color],
+                    pool,
+                    &pool_count,
+                    criteria
+                );
+            }
 
         /**
          * All of the child's colors were visited, merge the current colors
          * of the parents with the pool.
          */
         } else if(used_vertex_count < size) {
-            for(j = 0; j < size; j++) {
-                if(!used_vertex_list[j]) {
-                    pool[j] = 1;
-                    pool_count++;
-                    used_vertex_list[j] = 1;
-                    used_vertex_count++;
-                }
-            }
+            for(j = 0; j < size; j++)
+                pool[j] |= !used_vertex_list[j];
+
+            pool_count += (size - used_vertex_count);
+            used_vertex_count = size;
+            memset(used_vertex_list, 1, size);
         }
 
         // Search back to try to place vertices in the pool in previous colors.
         for(j = 0; j < size && pool_count > 0; j++) {
             for(k = pool_age[j]; k < child_color && pool[j]; k++) {
-                child[k][j] = 1;
-                pool[j] = 0;
-                pool_count--;
-
                 for(h = 0; h < size; h++) {
                     if(child[k][h] && edges[h][j]) {
                         conflict_count[h]++;
@@ -374,18 +370,28 @@ int crossover(
                     }
                 }
 
-                local_search(
-                    size,
-                    edges,
-                    weights,
-                    num_of_edges,
-                    conflict_count,
-                    &total_conflicts,
-                    child[k],
-                    pool,
-                    &pool_count,
-                    criteria
-                );
+                if(total_conflicts > 1) {
+                    total_conflicts = 0;
+                    memset(conflict_count, 0, size*sizeof(int));
+
+                } else if(total_conflicts == 1) {
+                    child[k][j] = 1;
+                    pool[j] = 0;
+                    pool_count--;
+
+                    local_search(
+                        size,
+                        edges,
+                        weights,
+                        num_of_edges,
+                        conflict_count,
+                        &total_conflicts,
+                        child[k],
+                        pool,
+                        &pool_count,
+                        criteria
+                    );
+                }
             }
         }
 
@@ -401,16 +407,11 @@ int crossover(
     // Record the last color of the child.
     last_color = child_color + 1;
 
-    
     // Another last local search.
     if(pool_count > 0) {
         // Search back to try to place vertices in the pool in previous colors.
         for(j = 0; j < size && pool_count > 0; j++) {
             for(k = pool_age[j]; k < child_color && pool[j]; k++) {
-                child[k][j] = 1;
-                pool[j] = 0;
-                pool_count--;
-
                 for(h = 0; h < size; h++) {
                     if(child[k][h] && edges[h][j]) {
                         conflict_count[h]++;
@@ -419,18 +420,28 @@ int crossover(
                     }
                 }
 
-                local_search(
-                    size,
-                    edges,
-                    weights,
-                    num_of_edges,
-                    conflict_count,
-                    &total_conflicts,
-                    child[k],
-                    pool,
-                    &pool_count,
-                    criteria
-                );
+                if(total_conflicts > 1) {
+                    total_conflicts = 0;
+                    memset(conflict_count, 0, size*sizeof(int));
+
+                } else if(total_conflicts == 1) {
+                    child[k][j] = 1;
+                    pool[j] = 0;
+                    pool_count--;
+
+                    local_search(
+                        size,
+                        edges,
+                        weights,
+                        num_of_edges,
+                        conflict_count,
+                        &total_conflicts,
+                        child[k],
+                        pool,
+                        &pool_count,
+                        criteria
+                    );
+                }
             }
         }
     }
