@@ -71,32 +71,41 @@ bool read_weights(const char* filename, int size, int weights[]) {
 bool is_valid(int size, const char edges[][size], int color_num, const char colors[][size]) {
     // clock_t start = clock();
     // Iterate through vertices.
-    int i, j, k, is_colored;
+    int i, j, k;
+    bool vertex_is_colored, error_flag = false;
     for(i = 0; i < size; i++) {
-        is_colored = 0;
+        vertex_is_colored = false;
         // Iterate through colors and look for the vertex.
         for(j = 0; j < color_num; j++){
-            is_colored += colors[j][i];
-        }
+            if(colors[j][i]) {
+                if(!vertex_is_colored) {
+                    vertex_is_colored = true;
 
-        // Check if the vertex had more then one color.
-        if(is_colored != 1) {
-            printf("The vertex %d has more than one color.\n", i+1);
-            return false;
-        }
-    }
+                } else {
+                    error_flag = true;
+                    break;
+                }
 
-    for(i = 0; i < color_num; i++) { // Through every color.
-        for(j = 0; j < size; j++) { // Through every vertex in color i.
-            if(colors[i][j]) {
-                for(k = j; k < size; k++) { // Through every vertex after j in color i.
-                    if(colors[i][k] && edges[j][k]) {
+                for(k = i + 1; k < size; k++) { // Through every vertex after j in color i.
+                    if(colors[j][k] && edges[i][k]) {
                         // The two vertices have the same color.
-                        printf("The verteces %d and %d are connected and have the same color %d.\n", i+1, j+1, k);
+                        printf("The verteces %d and %d are connected and have the same color %d.\n", i, j, k);
                         return 0;
                     }
                 }
             }
+        }
+
+        // Check if the vertex had more then one color.
+        if(!vertex_is_colored) {
+            printf("The vertex %d has no color.\n", i);
+            return false;
+        }
+
+        // Check if the vertex had more then one color.
+        if(error_flag) {
+            printf("The vertex %d has more than one color.\n", i);
+            return false;
         }
     }
 
