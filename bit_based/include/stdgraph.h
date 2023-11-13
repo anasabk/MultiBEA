@@ -16,6 +16,17 @@
 #define SET_COLOR(color, vertex)        color[BLOCK_INDEX(vertex)] |=  MASK(vertex)
 #define RESET_COLOR(color, vertex)      color[BLOCK_INDEX(vertex)] &= ~MASK(vertex)
 
+#define FOR_EACH_EDGE(vertex, counter, graph_size, edges, action) \
+for(counter = 0; counter < vertex; counter++) { \
+    if(CHECK_EDGE(EDGE_BIT_INDEX(counter, vertex), edges)) {\
+        action \
+    }\
+} \
+for(counter = vertex + 1; counter < graph_size; counter++) { \
+    if(CHECK_EDGE(EDGE_BIT_INDEX(vertex, counter), edges)) {\
+        action \
+    }\
+}
 
 bool read_graph(const char* filename, int sizgraph_sizee, uint32_t edges[]);
 

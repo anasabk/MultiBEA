@@ -84,7 +84,7 @@ Example datasets used are in the [link](https://cedric.cnam.fr/~porumbed/graphs/
 
 
 ### Weighted Graphs
-#### Cost Oriented
+#### Min Cost Oriented
 |  n  |  β   | fitness ST | fitness MT | incea fitness | uncolored ST | uncolored MT | incea uncolored |  time ST  |   time MT   | incea time |
 | --- | ---- | ---------- | ---------- | ------------- | ------------ | ------------ | --------------- | --------- | ----------- | ---------- |
 | 100 | 0.04 | 263.626678 | 257.663330 | 258.70        | 60.826668    | 59.983334    | 60.8            | 3.148435  | 37.333954   | 1 |
@@ -98,7 +98,7 @@ Example datasets used are in the [link](https://cedric.cnam.fr/~porumbed/graphs/
 | 200 | 0.15 | 97.230003  | 92.343330  | 89.8          | 30.586666    | 29.840000    | 30.6            | 86.313568 | 1216.578613 | 4 |
 | 200 | 0.20 | 45.733334  | 43.113335  | 39.6          | 16.333334    | 15.640000    | 15.8            | 87.825935 | 1063.731689 | 6 |
 
-#### Smallest Pool Oriented
+#### Min Color Oriented
 |  n  |  β   | fitness ST | fitness MT | incea fitness | uncolored ST | uncolored MT | incea uncolored |  time ST  |   time MT   | incea time |
 | --- | ---- | ---------- | ---------- | ------------- | ------------ | ------------ | --------------- | --------- | ----------- | ---------- |
 | 100 | 0.04 | 275.976654 | 267.666656 | 258.70        | 59.883335    | 59.323334    | 60.8            | 3.292642  | 42.840061   | 1 |

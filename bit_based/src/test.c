@@ -81,22 +81,8 @@ void* test_graph(void *param) {
 
     int greedy_color_count = graph_color_greedy(size, edges, temp_colors, max_edge_count);
     is_valid(size, edges, greedy_color_count, temp_colors);
-    int iteration_count = 10;
+    int iteration_count = 5;
     for(int k = 0; k < iteration_count; k++) {
-        // graph_color_genetic_time = 0;
-        // get_rand_color_time = 0;
-        // graph_color_random_time = 0;
-        // merge_colors_time = 0;
-        // rm_vertex_time = 0;
-        // search_back_time = 0;
-        // local_search_time = 0;
-        // crossover_time = 0;
-        // crossover_thread_time = 0;
-        // is_valid_time = 0;
-        // count_edges_time = 0;
-        // graph_color_greedy_time = 0;
-        // count_conflicts_time = 0;
-
         memset(temp_colors, 0, max_edge_count*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
 
         temp_color_count = graph_color_genetic(
@@ -191,7 +177,7 @@ void test_weighted(int size, int crossover_count, float color_density, char *gra
     uint32_t best_colors[max_edge_count][BLOCK_INDEX(size-1)+1], temp_colors[max_edge_count][BLOCK_INDEX(size-1)+1];
     memset(best_colors, 0, max_edge_count*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
 
-    int iteration_count = 10;
+    int iteration_count = 1;
     char edge_density[6][3];
     strcpy(edge_density[0], "10");
     strcpy(edge_density[1], "25");
@@ -219,7 +205,7 @@ void test_weighted(int size, int crossover_count, float color_density, char *gra
                 // graph_color_greedy_time = 0;
                 // count_conflicts_time = 0;
 
-                memset(temp_colors, 0, max_edge_count*size);
+                memset(temp_colors, 0, max_edge_count*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
 
                 temp_color_count = graph_color_genetic(
                     size,
@@ -231,8 +217,8 @@ void test_weighted(int size, int crossover_count, float color_density, char *gra
                     &temp_fitness,
                     &temp_time,
                     &temp_uncolored,
-                    4,
-                    MIN_COST
+                    5,
+                    MIN_COLOR_COUNT
                 );
 
                 total_color_count += temp_color_count;

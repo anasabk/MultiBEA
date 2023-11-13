@@ -129,6 +129,22 @@ void local_search(
 );
 
 
+void search_back(
+    int size,
+    const uint32_t edges[],
+    const int weights[],
+    const int degrees[],
+    int conflict_count[],
+    uint32_t child[][BLOCK_INDEX(size-1)+1], 
+    int current_color,
+    uint32_t pool[],
+    int pool_age[],
+    int *pool_count,
+    int *total_conflicts,
+    genetic_criteria_t criteria
+);
+
+
 /**
  * @brief Performs crossover between two parents to produce
  * a new individual.
