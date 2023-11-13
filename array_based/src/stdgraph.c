@@ -155,23 +155,18 @@ void print_colors(const char *filename, const char *header, int max_color_num, i
 
 int graph_color_greedy(int size, const char edges[][size], char colors[][size], int max_color_possible) {
     // clock_t start = clock();
-    // Create a random queue of vertices to propagate.
-    int prob_queue[size];
-    int i = 0;
-    while (i < size) {
-        prob_queue[i] = rand()%size;
-        if(!exists(prob_queue, i, prob_queue[i]))
-            i++;
-    }
-    
     // Go through the queue and color each vertex.
+    int prob_queue[size];
     char adjacent_colors[max_color_possible];
     int max_color = 0;
     int current_vert;
-    int j, k;
+    int i, j, k;
     for(i = 0; i < size; i++) {
-        // Initialize the temporary data.
+        // Get a new random vertex.
+        do { prob_queue[i] = rand()%size; } while(exists(prob_queue, i, prob_queue[i]));
         current_vert = prob_queue[i];
+    
+        // Initialize the temporary data.
         memset(adjacent_colors, 0, max_color_possible);
 
         // Go through each edge of the vertex and save the used colors in adjacent_colors array.
@@ -180,7 +175,10 @@ int graph_color_greedy(int size, const char edges[][size], char colors[][size], 
             if(edges[current_vert][j]) {
                 // Check its color.
                 for(k = 0; k < max_color_possible; k++) {
-                    adjacent_colors[k] |= colors[k][j];
+                    if(colors[k][j]) {
+                        adjacent_colors[k] = 1;
+                        break;
+                    }
                 }
             }
         }
