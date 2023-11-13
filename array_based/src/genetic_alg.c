@@ -29,10 +29,10 @@ double crossover_thread_time = 0;
 
 
 void graph_color_random(int size, const char edges[][size], char colors[][size], int max_color) {
-    clock_t start = clock();
+    // clock_t start = clock();
     for(int i = 0; i < size; i++)
         colors[rand()%max_color][i] = 1;
-    graph_color_random_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
+    // graph_color_random_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
 }
 
 int graph_color_genetic(
@@ -89,7 +89,7 @@ int graph_color_genetic(
         &target_color,
         &best_i,
         size,
-        max_gen_num/sqrt(thread_num),
+        max_gen_num,
         (char*)edges,
         weights,
         edge_count_list,
@@ -222,26 +222,16 @@ void local_search(
     genetic_criteria_t criteria
 ) {
     // clock_t start = clock();
-    // int conflict_count[size];
-    // memset(conflict_count, 0, size*sizeof(int));
-
-    // // Count the conflicts..
-    // int total_conflicts = count_conflicts(
-    //     size,
-    //     color,
-    //     edges,
-    //     conflict_count
-    // );
-
     // Keep removing problematic vertices until all conflicts are gone.
     int i, worst_vert = 0;
     while(*total_conflicts > 0) {
         // Find the vertex with the most conflicts.
         for(i = 0; i < size; i++) {
-            if (conflict_count[worst_vert] < conflict_count[i] ||
+            if (color[i] &&
+                (conflict_count[worst_vert] < conflict_count[i] ||
                 (conflict_count[worst_vert] == conflict_count[i] &&
-                ((weights[worst_vert] >= weights[i] && criteria == MIN_COST) ||
-                 (degrees[worst_vert] >= degrees[i] && criteria == MIN_COLOR_COUNT)))
+                ((criteria == MIN_COST && weights[worst_vert] >= weights[i]) ||
+                 (criteria == MIN_COLOR_COUNT && degrees[worst_vert] >= degrees[i]))))
             ) {
                 worst_vert = i;
             }
