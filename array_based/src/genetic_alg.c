@@ -395,6 +395,15 @@ int crossover(
         }
     }
 
+    if(used_vertex_count < size) {
+        for(j = 0; j < size; j++)
+            pool[j] |= !used_vertex_list[j];
+
+        pool_count += (size - used_vertex_count);
+        used_vertex_count = size;
+        memset(used_vertex_list, 1, size);
+    }
+
     // Record the last color of the child.
     last_color = child_color + 1;
 
