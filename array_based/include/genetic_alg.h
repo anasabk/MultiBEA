@@ -166,7 +166,7 @@ int crossover(
     int size, 
     const char edges[][size], 
     const int weights[],
-    const int num_of_edges[],
+    const int degrees[],
     int color_num1, 
     int color_num2, 
     const char parent1[][size], 
