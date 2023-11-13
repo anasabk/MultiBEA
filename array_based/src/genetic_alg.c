@@ -403,7 +403,7 @@ int crossover(
     if(pool_count > 0) {
         // Search back to try to place vertices in the pool in previous colors.
         for(j = 0; j < size && pool_count > 0; j++) {
-            for(k = pool_age[j]; k < child_color && pool[j]; k++) {
+            for(k = 0; k < child_color && pool[j]; k++) {
                 child[k][j] = 1;
                 pool[j] = 0;
                 pool_count--;
