@@ -202,7 +202,7 @@ void rm_vertex(
     // rm_vertex_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
 }
 
-void local_search(
+void fix_conflicts(
     int size,
     const uint32_t edges[],
     const int weights[],
@@ -249,7 +249,7 @@ void search_back(
     const uint32_t edges[],
     const int weights[],
     const int degrees[],
-    int conflict_count[],
+    int conflict_counts[],
     uint32_t child[][BLOCK_INDEX(size-1)+1], 
     int current_color,
     uint32_t pool[],
@@ -258,37 +258,124 @@ void search_back(
     int *total_conflicts,
     genetic_criteria_t criteria
 ) {
+    int conflict_count, last_conflict, temp_block, temp_mask;
     // Search back to try to place vertices in the pool in previous colors.
     int i, j, k, i_block, i_mask;
     for(i = 0; i < size && (*pool_count) > 0; i++) {
         i_block = BLOCK_INDEX(i);
         i_mask = MASK(i);
         for(j = pool_age[i]; j < current_color && (pool[i_block] & i_mask); j++) {
-            child[j][i_block] |= i_mask;
-            pool[i_block] &= ~i_mask;
-            (*pool_count)--;
+            // child[j][i_block] |= i_mask;
+            // pool[i_block] &= ~i_mask;
+            // (*pool_count)--;
+
+            // FOR_EACH_EDGE(
+            //     i, k, size, edges,
+            //     if(CHECK_COLOR(child[j], k)) {
+            //         conflict_count[k]++;
+            //         conflict_count[i]++;
+            //         (*total_conflicts)++;
+            //     }
+            // )
+
+            // fix_conflicts(
+            //     size,
+            //     edges,
+            //     weights,
+            //     degrees,
+            //     conflict_count,
+            //     total_conflicts,
+            //     child[j],
+            //     pool,
+            //     pool_count,
+            //     criteria
+            // );
+
+            conflict_count = 0;
 
             FOR_EACH_EDGE(
                 i, k, size, edges,
                 if(CHECK_COLOR(child[j], k)) {
-                    conflict_count[k]++;
-                    conflict_count[i]++;
-                    (*total_conflicts)++;
+                    conflict_count++;
+                    last_conflict = k;
+                    if(conflict_count > 0)
+                        break;
                 }
             )
 
-            local_search(
-                size,
-                edges,
-                weights,
-                degrees,
-                conflict_count,
-                total_conflicts,
-                child[j],
-                pool,
-                pool_count,
-                criteria
-            );
+            if(conflict_count == 0) {
+                child[j][i_block] |= i_mask;
+                pool[i_block] &= ~i_mask;
+                (*pool_count)--;
+
+            } else if(conflict_count == 1 && degrees[i] > degrees[last_conflict]) {
+                child[j][i_block] |= i_mask;
+                pool[i_block] &= ~i_mask;
+                (*pool_count)--;
+
+                temp_block = BLOCK_INDEX(last_conflict);
+                temp_mask = MASK(last_conflict);
+                child[j][temp_block] &= ~temp_mask;
+                pool[temp_block] |= temp_mask;
+                (*pool_count)++;
+            }
+        }
+    }
+}
+
+void local_search(
+    int size,
+    const uint32_t edges[],
+    const int weights[],
+    uint32_t child[][BLOCK_INDEX(size-1)+1], 
+    int color_count,
+    uint32_t pool[],
+    int *pool_count
+) {
+    int i, j, k, i_block, i_mask, temp_block, temp_mask;
+    int competition;
+    int conflict_count;
+
+    // Search back to try to place vertices in the pool in previous colors.
+    for(i = 0; i < size && (*pool_count) > 0; i++) { // Through every vertex until the pool is empty.
+        i_block = BLOCK_INDEX(i);
+        i_mask = MASK(i);
+        for(j = 0; j < color_count && (pool[i_block] & i_mask); j++) {  // Throught every color until the vertex is not in the pool.
+            conflict_count = 0;
+            competition = 0;
+
+            // Count conflicts and competition.
+            FOR_EACH_EDGE(
+                i, k, size, edges,
+                if(CHECK_COLOR(child[j], k)) {
+                    conflict_count++;
+                    competition += weights[k];
+                }
+            )
+
+            // Swap if no conflicts were found, or competition was smaller than the weight.
+            if(conflict_count == 0) {
+                child[j][i_block] |= i_mask;
+                pool[i_block] &= ~i_mask;
+                (*pool_count)--;
+
+            } else if(competition < weights[i]) {
+                child[j][i_block] |= i_mask;
+                pool[i_block] &= ~i_mask;
+                (*pool_count)--;
+
+                // Remove all conflicts.
+                FOR_EACH_EDGE(
+                    i, k, size, edges,
+                    if(CHECK_COLOR(child[j], k)) {
+                        temp_block = BLOCK_INDEX(k);
+                        temp_mask = MASK(k);
+                        child[j][temp_block] &= ~temp_mask;
+                        pool[temp_block] |= temp_mask;
+                        (*pool_count)++;
+                    }
+                )
+            }
         }
     }
 }
@@ -337,7 +424,7 @@ int crossover(
     // Main loop that iterates over all of the colors of the parents.
     uint32_t const *parent_color_p[2];
     int color1, color2, last_color = 0;
-    int i, j, k, h, child_color = 0, total_conflicts = 0, j_block, j_mask;
+    int i, j, child_color = 0, total_conflicts = 0;
     for(i = 0; i < max_iter_num && used_vertex_count < graph_size; i++) {
         // Pick 2 random colors.
         color1 = get_rand_color(color_num1, i, used_color_list[0]);
@@ -373,7 +460,7 @@ int crossover(
                 conflict_count
             );
 
-            local_search(
+            fix_conflicts(
                 graph_size,
                 edges,
                 weights,
@@ -411,7 +498,7 @@ int crossover(
             pool_age,
             &pool_count,
             &total_conflicts,
-            MIN_COLOR_COUNT
+            criteria
         );
 
         // Update the age records of vertices in the pool.
@@ -436,22 +523,15 @@ int crossover(
     last_color = child_color + 1;
 
     // Another last local search.
-    if(pool_count > 0) {
-        search_back(
-            graph_size,
-            edges,
-            weights,
-            degrees,
-            conflict_count,
-            child, 
-            child_color,
-            pool,
-            pool_age,
-            &pool_count,
-            &total_conflicts,
-            criteria
-        );
-    }
+    local_search (
+        graph_size,
+        edges,
+        weights,
+        child,
+        child_color,
+        pool,
+        &pool_count
+    );
 
     // If the pool is not empty, randomly allocate the remaining vertices in the colors.
     int fitness = 0, temp_block, temp_mask;

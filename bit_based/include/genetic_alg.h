@@ -115,7 +115,7 @@ int merge_colors(
 );
 
 
-void local_search(
+void fix_conflicts(
     int size,
     const uint32_t edges[],
     const int weights[],
@@ -142,6 +142,17 @@ void search_back(
     int *pool_count,
     int *total_conflicts,
     genetic_criteria_t criteria
+);
+
+
+void local_search(
+    int size,
+    const uint32_t edges[],
+    const int weights[],
+    uint32_t child[][BLOCK_INDEX(size-1)+1], 
+    int color_count,
+    uint32_t pool[],
+    int *pool_count
 );
 
 
