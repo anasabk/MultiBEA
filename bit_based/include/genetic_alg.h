@@ -149,10 +149,12 @@ void local_search(
     int size,
     const uint32_t edges[],
     const int weights[],
+    const int degrees[],
     uint32_t child[][BLOCK_INDEX(size-1)+1], 
     int color_count,
     uint32_t pool[],
-    int *pool_count
+    int *pool_count,
+    genetic_criteria_t criteria
 );
 
 

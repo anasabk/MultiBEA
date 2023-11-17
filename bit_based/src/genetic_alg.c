@@ -72,7 +72,7 @@ int graph_color_genetic(
 
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, 2048L*1024L*1024L);
+    // pthread_attr_setstacksize(&attr, 2048L*1024L*1024L);
 
     atomic_char32_t used_parents[(BLOCK_INDEX(graph_size-1)+1)];
     memset(used_parents, 0, (BLOCK_INDEX(graph_size-1)+1)*sizeof(atomic_char32_t));
@@ -298,7 +298,7 @@ void search_back(
                 if(CHECK_COLOR(child[j], k)) {
                     conflict_count++;
                     last_conflict = k;
-                    if(conflict_count > 0)
+                    if(conflict_count > 1)
                         break;
                 }
             )
@@ -327,10 +327,12 @@ void local_search(
     int size,
     const uint32_t edges[],
     const int weights[],
+    const int degrees[],
     uint32_t child[][BLOCK_INDEX(size-1)+1], 
     int color_count,
     uint32_t pool[],
-    int *pool_count
+    int *pool_count,
+    genetic_criteria_t criteria
 ) {
     int i, j, k, i_block, i_mask, temp_block, temp_mask;
     int competition;
@@ -349,7 +351,10 @@ void local_search(
                 i, k, size, edges,
                 if(CHECK_COLOR(child[j], k)) {
                     conflict_count++;
-                    competition += weights[k];
+                    if(criteria == MIN_COST)
+                        competition += weights[k];
+                    else if(criteria == MIN_COLOR_COUNT)
+                        competition += degrees[k];
                 }
             )
 
@@ -359,7 +364,9 @@ void local_search(
                 pool[i_block] &= ~i_mask;
                 (*pool_count)--;
 
-            } else if(competition < weights[i]) {
+            } else if((criteria == MIN_COST && competition < weights[i]) ||
+                (criteria == MIN_COLOR_COUNT && competition < degrees[i])) 
+            {
                 child[j][i_block] |= i_mask;
                 pool[i_block] &= ~i_mask;
                 (*pool_count)--;
@@ -527,10 +534,12 @@ int crossover(
         graph_size,
         edges,
         weights,
+        degrees,
         child,
         child_color,
         pool,
-        &pool_count
+        &pool_count,
+        criteria
     );
 
     // If the pool is not empty, randomly allocate the remaining vertices in the colors.

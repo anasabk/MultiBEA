@@ -16,7 +16,7 @@ bool read_graph(const char* filename, int graph_size, uint32_t edges[]) {
     if(fp == NULL)
         return false;
 
-    memset(edges, 0, (BLOCK_INDEX(graph_size*(graph_size-1)/2-1)+1)*sizeof(uint32_t));
+    memset(edges, 0, (BLOCK_INDEX(graph_size*(graph_size-1)/2))*sizeof(uint32_t));
 
     char buffer[64];
     char *token, *saveptr;
