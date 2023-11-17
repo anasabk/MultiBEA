@@ -9,7 +9,7 @@
 
 typedef enum {
     MIN_COST,
-    MIN_COLOR_COUNT
+    MIN_POOL
 } genetic_criteria_t;
 
 struct crossover_param_s {

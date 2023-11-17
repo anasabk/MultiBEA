@@ -224,7 +224,7 @@ void fix_conflicts(
                 (conflict_count[worst_vert] < conflict_count[i] ||
                 (conflict_count[worst_vert] == conflict_count[i] &&
                 ((criteria == MIN_COST && weights[worst_vert] >= weights[i]) ||
-                 (criteria == MIN_COLOR_COUNT && degrees[worst_vert] >= degrees[i]))))
+                 (criteria == MIN_POOL && degrees[worst_vert] >= degrees[i]))))
             ) {
                 worst_vert = i;
             }
@@ -265,34 +265,7 @@ void search_back(
         i_block = BLOCK_INDEX(i);
         i_mask = MASK(i);
         for(j = pool_age[i]; j < current_color && (pool[i_block] & i_mask); j++) {
-            // child[j][i_block] |= i_mask;
-            // pool[i_block] &= ~i_mask;
-            // (*pool_count)--;
-
-            // FOR_EACH_EDGE(
-            //     i, k, size, edges,
-            //     if(CHECK_COLOR(child[j], k)) {
-            //         conflict_count[k]++;
-            //         conflict_count[i]++;
-            //         (*total_conflicts)++;
-            //     }
-            // )
-
-            // fix_conflicts(
-            //     size,
-            //     edges,
-            //     weights,
-            //     degrees,
-            //     conflict_count,
-            //     total_conflicts,
-            //     child[j],
-            //     pool,
-            //     pool_count,
-            //     criteria
-            // );
-
             conflict_count = 0;
-
             FOR_EACH_EDGE(
                 i, k, size, edges,
                 if(CHECK_COLOR(child[j], k)) {
@@ -308,7 +281,10 @@ void search_back(
                 pool[i_block] &= ~i_mask;
                 (*pool_count)--;
 
-            } else if(conflict_count == 1 && degrees[i] > degrees[last_conflict]) {
+            } else if(conflict_count == 1 && 
+                ((criteria == MIN_COST && weights[last_conflict] <= weights[i]) ||
+                 (criteria == MIN_POOL && degrees[last_conflict] <= degrees[i]))) 
+            {
                 child[j][i_block] |= i_mask;
                 pool[i_block] &= ~i_mask;
                 (*pool_count)--;
@@ -353,7 +329,7 @@ void local_search(
                     conflict_count++;
                     if(criteria == MIN_COST)
                         competition += weights[k];
-                    else if(criteria == MIN_COLOR_COUNT)
+                    else if(criteria == MIN_POOL)
                         competition += degrees[k];
                 }
             )
@@ -365,7 +341,7 @@ void local_search(
                 (*pool_count)--;
 
             } else if((criteria == MIN_COST && competition < weights[i]) ||
-                (criteria == MIN_COLOR_COUNT && competition < degrees[i])) 
+                (criteria == MIN_POOL && competition < degrees[i])) 
             {
                 child[j][i_block] |= i_mask;
                 pool[i_block] &= ~i_mask;
