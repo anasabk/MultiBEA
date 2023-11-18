@@ -7,6 +7,7 @@
 #include <string.h>
 #include <float.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 #include <errno.h>
 #include <stdatomic.h>
 #include <pthread.h>
@@ -43,8 +44,6 @@ int graph_color_genetic(
     int thread_num,
     genetic_criteria_t criteria
 ) {
-    // clock_t start = clock();
-
     // Count the degrees of each vertex
     int edge_count_list[graph_size];
     count_edges(graph_size, edges, edge_count_list);
@@ -72,7 +71,6 @@ int graph_color_genetic(
 
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-    // pthread_attr_setstacksize(&attr, 2048L*1024L*1024L);
 
     atomic_char32_t used_parents[(BLOCK_INDEX(graph_size-1)+1)];
     memset(used_parents, 0, (BLOCK_INDEX(graph_size-1)+1)*sizeof(atomic_char32_t));
@@ -116,7 +114,6 @@ int graph_color_genetic(
     *best_solution_time = best_time;
     memcpy(best_solution, population[best_i], base_color_count * (BLOCK_INDEX(graph_size-1)+1) * sizeof(uint32_t));
 
-    // graph_color_genetic_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return color_count[best_i];
 }
 
@@ -182,8 +179,6 @@ void rm_vertex(
     int *total_conflicts,
     int *pool_total
 ) {
-    // clock_t start = clock();
-
     int i;
     FOR_EACH_EDGE(
         vertex, i, size, edges,
@@ -199,7 +194,6 @@ void rm_vertex(
 
     (*total_conflicts) -= conflict_count[vertex];
     conflict_count[vertex] = 0;
-    // rm_vertex_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
 }
 
 void fix_conflicts(
@@ -214,7 +208,6 @@ void fix_conflicts(
     int *pool_total,
     genetic_criteria_t criteria
 ) {
-    // clock_t start = clock();
     // Keep removing problematic vertices until all conflicts are gone.
     int i, worst_vert = 0;
     while(*total_conflicts > 0) {
@@ -241,7 +234,6 @@ void fix_conflicts(
             pool_total
         );
     }
-    // local_search_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
 }
 
 void search_back(
@@ -287,13 +279,11 @@ void search_back(
             {
                 child[j][i_block] |= i_mask;
                 pool[i_block] &= ~i_mask;
-                (*pool_count)--;
 
                 temp_block = BLOCK_INDEX(last_conflict);
                 temp_mask = MASK(last_conflict);
                 child[j][temp_block] &= ~temp_mask;
                 pool[temp_block] |= temp_mask;
-                (*pool_count)++;
             }
         }
     }
@@ -378,7 +368,6 @@ int crossover(
     int *child_color_count,
     int *uncolored
 ) {
-    // clock_t start = clock();
     // max number of colors of the two parents.
     int max_color_num = color_num1 > color_num2 ? color_num1 : color_num2;
 
@@ -466,7 +455,7 @@ int crossover(
 
             pool_count += (graph_size - used_vertex_count);
             used_vertex_count = graph_size;
-            memset(used_vertex_list, 0x01, (BLOCK_INDEX(graph_size-1)+1)*sizeof(uint32_t));
+            memset(used_vertex_list, 0xFF, (BLOCK_INDEX(graph_size-1)+1)*sizeof(uint32_t));
         }
 
         search_back(
@@ -499,7 +488,7 @@ int crossover(
 
         pool_count += (graph_size - used_vertex_count);
         used_vertex_count = graph_size;
-        memset(used_vertex_list, 0x01, (BLOCK_INDEX(graph_size-1)+1)*sizeof(uint32_t));
+        memset(used_vertex_list, 0xFF, (BLOCK_INDEX(graph_size-1)+1)*sizeof(uint32_t));
     }
 
     // Record the last color of the child.
@@ -543,13 +532,13 @@ int crossover(
 
     *uncolored = pool_count;
     *child_color_count = last_color;
-    // crossover_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return fitness;
 }
 
 void* crossover_thread(void *param) {
-    clock_t start_time = clock();
+    struct timeval t1, t2;
     float last_solution_time = 0;
+    gettimeofday(&t1, NULL);
 
     int base_color_count = ((struct crossover_param_s*)param)->base_color_count;
     atomic_int *target_color_count = ((struct crossover_param_s*)param)->target_color_count;
@@ -623,7 +612,8 @@ void* crossover_thread(void *param) {
             ) {
                 *best_i = dead_parent;
                 best = dead_parent;
-                last_solution_time = ((double)(clock() - start_time))/CLOCKS_PER_SEC;
+                gettimeofday(&t2, NULL);
+                last_solution_time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0;   // us to ms
             }
         }
 

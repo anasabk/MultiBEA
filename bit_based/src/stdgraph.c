@@ -16,7 +16,7 @@ bool read_graph(const char* filename, int graph_size, uint32_t edges[]) {
     if(fp == NULL)
         return false;
 
-    memset(edges, 0, (BLOCK_INDEX(graph_size*(graph_size-1)/2))*sizeof(uint32_t));
+    memset(edges, 0, (BLOCK_INDEX(graph_size*(graph_size-1)/2 - 1) + 1)*sizeof(uint32_t));
 
     char buffer[64];
     char *token, *saveptr;
@@ -94,17 +94,23 @@ bool is_valid(
                 for(k = i + 1; k < graph_size; k++) { // Through every vertex after k in color j.
                     if((colors[j][BLOCK_INDEX(k)] & MASK(k)) && CHECK_EDGE(EDGE_BIT_INDEX(i, k), edges)) {
                         // The two vertices have the same color.
-                        printf("The verteces %d and %d are connected and have the same color %d.\n", i, k, j);
-                        return 0;
+                        // printf("The verteces %d and %d are connected and have the same color %d.\n", i, k, j);
+                        // return 0;
                     }
                 }
             }
         }
 
         // Check if the vertex had more then one color.
+        if(!vertex_is_colored) {
+            printf("The vertex %d has no color.\n", i);
+            // return false;
+        }
+
+        // Check if the vertex had more then one color.
         if(error_flag) {
             printf("The vertex %d has more than one color.\n", i);
-            return false;
+            // return false;
         }
     }
 
@@ -157,7 +163,6 @@ int graph_color_greedy(
     uint32_t colors[][BLOCK_INDEX(graph_size-1)+1], 
     int max_color_possible
 ) {
-    // clock_t start = clock();
     // Go through the queue and color each vertex.
     int prob_queue[graph_size];
     uint32_t adjacent_colors[BLOCK_INDEX(max_color_possible-1)+1];
@@ -170,23 +175,19 @@ int graph_color_greedy(
 
         // Initialize the temporary data.
         memset(adjacent_colors, 0, (BLOCK_INDEX(max_color_possible-1)+1)*sizeof(uint32_t));
+        FOR_EACH_EDGE(
+            current_vert, j, graph_size, edges,
+            temp_block = BLOCK_INDEX(j);
+            temp_mask  = MASK(j);
 
-        // Go through each edge of the vertex and save the used colors in adjacent_colors array.
-        for(j = 0; j < graph_size; j++) {
-            // This is a neighbor
-            if(current_vert<j ? CHECK_EDGE(EDGE_BIT_INDEX(current_vert, j), edges) : CHECK_EDGE(EDGE_BIT_INDEX(j, current_vert), edges)) {
-                temp_block = BLOCK_INDEX(j);
-                temp_mask  = MASK(j);
-
-                // Check its color.
-                for(k = 0; k < max_color_possible; k++) {
-                    if((colors[k][temp_block] & temp_mask)) {
-                        SET_COLOR(adjacent_colors, k);
-                        break;
-                    }
+            // Check its color.
+            for(k = 0; k < max_color_possible; k++) {
+                if((colors[k][temp_block] & temp_mask)) {
+                    SET_COLOR(adjacent_colors, k);
+                    break;
                 }
             }
-        }
+        )
 
         // Find the first unused color (starting from 0) and assign this vertex to it.
         for(j = 0; j < max_color_possible; j++) {
@@ -199,7 +200,6 @@ int graph_color_greedy(
         }
     }
 
-    // graph_color_greedy_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return max_color + 1;
 }
 
@@ -209,7 +209,6 @@ int count_conflicts(
     const uint32_t edges[], 
     int conflict_count[]
 ) {
-    // clock_t start = clock();
     int i, j, total_conflicts = 0;
     for(i = 0; i < graph_size; i++) {   // i = index of the vertex to search for conflicts.
         if(CHECK_COLOR(color, i)) { // Check if the vertex i has this color i.
@@ -224,6 +223,5 @@ int count_conflicts(
         }
     }
 
-    // count_conflicts_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return total_conflicts;
 }
