@@ -22,7 +22,7 @@ build: $(OBJECTS)
 	gcc $(CFLAGS) $(OBJECTS) -o genetic_coloring $(LINKFLAGS)
 
 run:
-	./genetic_coloring ../test_list.txt 3 3 100000
+	./genetic_coloring ../test_unweighted.txt 1 5 30000
 
 clean:
 	rm -rf obj genetic_coloring

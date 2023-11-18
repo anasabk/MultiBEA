@@ -81,7 +81,8 @@ void* test_graph(void *param) {
 
     int greedy_color_count = graph_color_greedy(size, edges, temp_colors, max_edge_count);
     is_valid(size, edges, greedy_color_count, temp_colors);
-    int iteration_count = 5;
+
+    int iteration_count = 10;
     for(int k = 0; k < iteration_count; k++) {
         memset(temp_colors, 0, max_edge_count*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
 
@@ -96,7 +97,7 @@ void* test_graph(void *param) {
             &temp_time,
             &temp_uncolored,
             multiverse_size,
-            MIN_POOL
+            MIN_COST
         );
 
         total_color_count += temp_color_count;
@@ -141,8 +142,8 @@ void* test_graph(void *param) {
     return NULL;
 }
 
-void __attribute__((optimize("O0"))) test_weighted(int size, int crossover_count, float color_density, char *graph_name, char *weight_filename, char *result_filename) {
-    uint32_t edges[BLOCK_INDEX(size*(size-1)/2)];    
+void __attribute__((optimize("O0"))) test_weighted(int size, int crossover_count, int thread_count, float color_density, char *graph_name, char *weight_filename, char *result_filename) {
+    uint32_t edges[BLOCK_INDEX(size*(size-1)/2 - 1) + 1];    
 
     int weights[size];
     if(!read_weights(weight_filename, size, weights)) {
@@ -196,10 +197,12 @@ void __attribute__((optimize("O0"))) test_weighted(int size, int crossover_count
                     &temp_fitness,
                     &temp_time,
                     &temp_uncolored,
-                    5,
+                    thread_count,
                     MIN_COST
                 );
-                total_execution += ((double)(clock() - temp_clock))/CLOCKS_PER_SEC;
+                total_execution += (((double)(clock() - temp_clock))/CLOCKS_PER_SEC)/thread_count;
+
+                // is_valid(size, edges, size*color_density, temp_colors);
 
                 total_color_count += temp_color_count;
                 total_fitness += temp_fitness;
@@ -288,17 +291,19 @@ int main(int argc, char *argv[]) {
 
     printf("|  fitness   | uncolored  |    time    | execution time |\n");
     char buffer[128];
+    int thread_count = 5;
+    int crossover_count = 20000;
     strcpy(buffer, "../graph_datasets/INCEA100");
-    test_weighted(100, 20000, 0.04, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    test_weighted(100, 20000, 0.08, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    test_weighted(100, 20000, 0.1, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    test_weighted(100, 20000, 0.15, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    test_weighted(100, 20000, 0.2, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    test_weighted(100, crossover_count, thread_count, 0.04, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    test_weighted(100, crossover_count, thread_count, 0.08, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    test_weighted(100, crossover_count, thread_count, 0.1, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    test_weighted(100, crossover_count, thread_count, 0.15, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
+    test_weighted(100, crossover_count, thread_count, 0.2, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
 
     strcpy(buffer, "../graph_datasets/INCEA200");
-    test_weighted(200, 20000, 0.04, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    test_weighted(200, 20000, 0.08, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    test_weighted(200, 20000, 0.1, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    test_weighted(200, 20000, 0.15, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    test_weighted(200, 20000, 0.2, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    test_weighted(200, crossover_count, thread_count, 0.04, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    test_weighted(200, crossover_count, thread_count, 0.08, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    test_weighted(200, crossover_count, thread_count, 0.1, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    test_weighted(200, crossover_count, thread_count, 0.15, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    test_weighted(200, crossover_count, thread_count, 0.2, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
 }
