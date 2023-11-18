@@ -3,11 +3,13 @@
 
 
 #include <stdatomic.h>
+#include <inttypes.h>
+#include "stdgraph.h"
 
 
 typedef enum {
     MIN_COST,
-    MIN_COLOR_COUNT
+    MIN_POOL
 } genetic_criteria_t;
 
 struct crossover_param_s {
@@ -22,7 +24,7 @@ struct crossover_param_s {
     int *color_count;
     int *fitness;
     int *uncolored;
-    char *colors;
+    char *population;
     atomic_bool *used_parents;
     genetic_criteria_t criteria;
 };
@@ -31,17 +33,6 @@ struct crossover_result_s {
     int best_i;
     double best_time;
 };
-
-
-extern double graph_color_genetic_time;
-extern double get_rand_color_time;
-extern double graph_color_random_time;
-extern double merge_colors_time;
-extern double rm_vertex_time;
-extern double search_back_time;
-extern double local_search_time;
-extern double crossover_time;
-extern double crossover_thread_time;
 
 
 /**
@@ -120,20 +111,9 @@ int merge_colors(
 );
 
 
-/**
- * @brief Fix the conflicts in the color by throwing problematic
- * vertices to the pool.
- * 
- * @param size Size of the graph.
- * @param edges The edge matric of the graph.
- * @param num_of_edges List of the degrees of every vertex.
- * @param color Color to be fixed.
- * @param pool Pool to store vertices removed from the color.
- * @param pool_total Total number of vertices in the pool.
- */
-void local_search(
+void fix_conflicts(
     int size,
-    const char edges[][size],
+    const char edges[][size], 
     const int weights[],
     const int degrees[],
     int conflict_count[],
@@ -141,6 +121,35 @@ void local_search(
     char color[],
     char pool[],
     int *pool_total,
+    genetic_criteria_t criteria
+);
+
+
+void search_back(
+    int size,
+    const char edges[][size], 
+    const int weights[],
+    const int degrees[],
+    int conflict_count[],
+    char child[][size], 
+    int current_color,
+    char pool[],
+    int pool_age[],
+    int *pool_count,
+    int *total_conflicts,
+    genetic_criteria_t criteria
+);
+
+
+void local_search(
+    int size,
+    const char edges[][size], 
+    const int weights[],
+    const int degrees[],
+    char child[][size], 
+    int color_count,
+    char pool[],
+    int *pool_count,
     genetic_criteria_t criteria
 );
 

@@ -4,16 +4,9 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <time.h>
 
 #include "stdgraph.h"
 #include "common.h"
-
-
-double is_valid_time = 0;
-double count_edges_time = 0;
-double graph_color_greedy_time = 0;
-double count_conflicts_time = 0;
 
 
 bool read_graph(const char* filename, int size, char edges[][size]) {
@@ -30,11 +23,10 @@ bool read_graph(const char* filename, int size, char edges[][size]) {
     while(!feof(fp)) {
         fgets(buffer, 64, fp);
         buffer[strcspn(buffer, "\n")] = 0;
-        token = strtok_r (buffer, " ", &saveptr);
-        
-        if(saveptr[0] == 0)
-            break;
 
+        token = strtok_r (buffer, " ", &saveptr);
+        if(saveptr[0] == 0) 
+            break;
         row = atoi(token);
         token = strtok_r (NULL, " ", &saveptr);
         column = atoi(token);
@@ -53,7 +45,7 @@ bool read_weights(const char* filename, int size, int weights[]) {
     if(fp == NULL)
         return false;
 
-    memset(weights, 0, size);
+    memset(weights, 0, size * sizeof(int));
 
     char buffer[64];
     int vertex = 0;
@@ -69,7 +61,6 @@ bool read_weights(const char* filename, int size, int weights[]) {
 }
 
 bool is_valid(int size, const char edges[][size], int color_num, const char colors[][size]) {
-    // clock_t start = clock();
     // Iterate through vertices.
     int i, j, k;
     bool vertex_is_colored, error_flag = false;
@@ -89,8 +80,8 @@ bool is_valid(int size, const char edges[][size], int color_num, const char colo
                 for(k = i + 1; k < size; k++) { // Through every vertex after j in color i.
                     if(colors[j][k] && edges[i][k]) {
                         // The two vertices have the same color.
-                        printf("The verteces %d and %d are connected and have the same color %d.\n", i, j, k);
-                        return 0;
+                        // printf("The verteces %d and %d are connected and have the same color %d.\n", i, j, k);
+                        // return 0;
                     }
                 }
             }
@@ -99,39 +90,28 @@ bool is_valid(int size, const char edges[][size], int color_num, const char colo
         // Check if the vertex had more then one color.
         if(!vertex_is_colored) {
             printf("The vertex %d has no color.\n", i);
-            return false;
+            // return false;
         }
 
         // Check if the vertex had more then one color.
-        if(error_flag) {
+        else if(error_flag) {
             printf("The vertex %d has more than one color.\n", i);
-            return false;
+            // return false;
         }
     }
 
-    // is_valid_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return true;
 }
 
-int count_edges(int size, const char edges[][size], int count[]) {
-    // clock_t start = clock();
-    for(int i = 0; i < size; i++)
-        count[i] = 0;
+void count_edges(int size, const char edges[][size], int edge_count[]) {
+    memset(edge_count, 0, size*sizeof(int));
 
     for(int i = 0; i < size; i++) {
         for(int j = 0; j <= i; j++) {
-            count[i] += edges[i][j];
-            count[j] += edges[i][j];
+            edge_count[i] += edges[i][j];
+            edge_count[j] += edges[i][j];
         }
     }
-
-    int max_count = 0;
-    for(int i = 0; i < size; i++)
-        if(max_count < count[i])
-            max_count = count[i];
-
-    // count_edges_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
-    return max_count;
 }
 
 void print_colors(const char *filename, const char *header, int max_color_num, int size, const char colors[][size]) {
@@ -154,12 +134,10 @@ void print_colors(const char *filename, const char *header, int max_color_num, i
 }
 
 int graph_color_greedy(int size, const char edges[][size], char colors[][size], int max_color_possible) {
-    // clock_t start = clock();
     // Go through the queue and color each vertex.
     int prob_queue[size];
     char adjacent_colors[max_color_possible];
-    int max_color = 0;
-    int current_vert;
+    int max_color = 0, current_vert;
     int i, j, k;
     for(i = 0; i < size; i++) {
         // Get a new random vertex.
@@ -194,7 +172,6 @@ int graph_color_greedy(int size, const char edges[][size], char colors[][size], 
         }
     }
 
-    // graph_color_greedy_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return max_color + 1;
 }
 
@@ -204,7 +181,6 @@ int count_conflicts(
     const char edges[][size], 
     int conflict_count[]
 ) {
-    // clock_t start = clock();
     int i, j, total_conflicts = 0;
     for(i = 0; i < size; i++) {   // i = index of the vertex to search for conflicts.
         if(color[i]) { // Check if the vertex i has this color i.
@@ -218,6 +194,5 @@ int count_conflicts(
         }
     }
 
-    // count_conflicts_time += ((double)(clock() - start))/CLOCKS_PER_SEC;
     return total_conflicts;
 }
