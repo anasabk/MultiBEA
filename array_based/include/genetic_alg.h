@@ -24,6 +24,7 @@ struct crossover_param_s {
     int *color_count;
     int *fitness;
     int *uncolored;
+    int population_size;
     char *population;
     atomic_bool *used_parents;
     genetic_criteria_t criteria;
@@ -65,6 +66,7 @@ int graph_color_genetic(
     int size, 
     char edges[][size], 
     int weights[],
+    int population_size,
     int base_color_count,
     int max_gen_num,
     char best_solution[][size],

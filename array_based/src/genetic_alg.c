@@ -17,17 +17,6 @@
 #include "common.h"
 
 
-double graph_color_genetic_time = 0;
-double get_rand_color_time = 0;
-double graph_color_random_time = 0;
-double merge_colors_time = 0;
-double rm_vertex_time = 0;
-double search_back_time = 0;
-double local_search_time = 0;
-double crossover_time = 0;
-double crossover_thread_time = 0;
-
-
 void graph_color_random(int size, const char edges[][size], char colors[][size], int max_color) {
     for(int i = 0; i < size; i++)
         colors[rand()%max_color][i] = 1;
@@ -37,6 +26,7 @@ int graph_color_genetic(
     int size, 
     char edges[][size], 
     int weights[],
+    int population_size,
     int base_color_count,
     int max_gen_num,
     char best_solution[][size],
@@ -50,22 +40,22 @@ int graph_color_genetic(
     int edge_count_list[size];
     count_edges(size, edges, edge_count_list);
 
-    char population[100][base_color_count][size];
-    int color_count[100];
-    int uncolored[100];
-    int fitness[100];
+    char population[population_size][base_color_count][size];
+    int color_count[population_size];
+    int uncolored[population_size];
+    int fitness[population_size];
 
     // Initialize The arrays.
-    memset(population, 0, 100*base_color_count*size);
-    memset(uncolored, 0, 100*sizeof(int));
-    memset(fitness, 0, 100*sizeof(int));
+    memset(population, 0, population_size*base_color_count*size);
+    memset(uncolored, 0, population_size*sizeof(int));
+    memset(fitness, 0, population_size*sizeof(int));
 
     /**
      * Generate a random population, where each individual has
      * the base number of colors.
      */
     int i;
-    for (i = 0; i < 100; i++) {
+    for (i = 0; i < population_size; i++) {
         graph_color_random(size, edges, population[i], base_color_count);   
         color_count[i] = base_color_count;
         fitness[i] = __INT_MAX__;
@@ -91,6 +81,7 @@ int graph_color_genetic(
         color_count,
         fitness,
         uncolored,
+        population_size,
         (char*)population,
         used_parents,
         criteria
@@ -534,7 +525,8 @@ void* crossover_thread(void *param) {
     int *color_count = ((struct crossover_param_s*)param)->color_count;
     int *fitness = ((struct crossover_param_s*)param)->fitness;
     int *uncolored = ((struct crossover_param_s*)param)->uncolored;
-    char (*population)[100][base_color_count][size] = (char(*)[][base_color_count][size])((struct crossover_param_s*)param)->population;
+    int population_size = ((struct crossover_param_s*)param)->population_size;
+    char (*population)[population_size][base_color_count][size] = (char(*)[][base_color_count][size])((struct crossover_param_s*)param)->population;
     atomic_bool *used_parents = ((struct crossover_param_s*)param)->used_parents;
     genetic_criteria_t criteria = ((struct crossover_param_s*)param)->criteria;
 
@@ -551,9 +543,9 @@ void* crossover_thread(void *param) {
 
         // Pick 2 random parents
         dead_parent = -1;
-        do { parent1 = rand()%100; } while (used_parents[parent1]);
+        do { parent1 = rand()%population_size; } while (used_parents[parent1]);
         used_parents[parent1] = 1;
-        do { parent2 = rand()%100; } while (used_parents[parent2]);
+        do { parent2 = rand()%population_size; } while (used_parents[parent2]);
         used_parents[parent2] = 1;
 
         // Do a crossover
