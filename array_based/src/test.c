@@ -63,7 +63,7 @@ void* test_graph(void *param) {
     }
 
     int weights[size];
-    if(strncmp(weight_filename, "unweighted", 10) != 0) {
+    if(strncmp(weight_filename, "null", 10) != 0) {
         if(!read_weights(weight_filename, size, weights)) {
             printf("Could not initialize graph weights from %s, exitting ...\n", weight_filename);
             return NULL;
@@ -306,7 +306,7 @@ int main(int argc, char *argv[]) {
     char buffer[256];
     int i, j;
     while(!feof(test_list_file) && !terminated) {
-        param_list[test_thread_count] = malloc(sizeof(struct test_param));
+        param_list[test_thread_count] = calloc(sizeof(struct test_param), 1);
 
         fgets(buffer, 256, test_list_file);
         buffer[strcspn(buffer, "\n")] = 0;
@@ -368,10 +368,8 @@ int main(int argc, char *argv[]) {
     if(terminated) {
         for(i = 0; i < test_thread_count; i++) {
             pthread_cancel(thread_id_list[i]);
-            if(param_list[i] != NULL) {
-                free(param_list[i]->result.solution);
+            if(param_list[i] != NULL)
                 free(param_list[i]);
-            }
         }
 
         test_thread_count = 0;

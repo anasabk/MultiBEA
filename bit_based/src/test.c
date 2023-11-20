@@ -331,6 +331,7 @@ int main(int argc, char *argv[]) {
                 if(pthread_timedjoin_np(thread_id_list[i], NULL, &thread_wait_time) == 0) {
                     fprintf(result_file, "%s", param_list[i]->result.summary);
                     printf("%s", param_list[i]->result.summary);
+                	free(param_list[i]->result.solution);
                     free(param_list[i]);
 
                     for(j = i+1; j < num_of_threads; j++) {
@@ -351,6 +352,7 @@ int main(int argc, char *argv[]) {
             if(pthread_timedjoin_np(thread_id_list[i], NULL, &thread_wait_time) == 0) {
                 fprintf(result_file, "%s", param_list[i]->result.summary);
                 printf("%s", param_list[i]->result.summary);
+                free(param_list[i]->result.solution);
                 free(param_list[i]);
 
                 for(j = i+1; j < num_of_threads; j++) {

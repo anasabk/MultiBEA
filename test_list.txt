@@ -1,80 +1,30 @@
-10 ../graph_datasets/goodgraph.edgelist ../graph_datasets/goodgraph.col.w results/goodgraph.txt
-100 ../graph_datasets/R100_5g.edgelist ../graph_datasets/R100_5g.col.w results/R100_5g.txt
-125 ../graph_datasets/DSJC125.5g.edgelist ../graph_datasets/DSJC125.5g.col.w results/DSJC125.5g.txt
-100 ../graph_datasets/queen10_10g.edgelist ../graph_datasets/queen10_10g.col.w results/queen10_10g.txt
-100 ../graph_datasets/queen10_10gb.edgelist ../graph_datasets/queen10_10gb.col.w results/queen10_10gb.txt
-125 ../graph_datasets/DSJC125.1g.edgelist ../graph_datasets/DSJC125.1g.col.w results/DSJC125.1g.txt
-125 ../graph_datasets/DSJC125.1gb.edgelist ../graph_datasets/DSJC125.1gb.col.w results/DSJC125.1gb.txt
-64 ../graph_datasets/queen8_8g.edgelist ../graph_datasets/queen8_8g.col.w results/queen8_8g.txt
-81 ../graph_datasets/queen9_9g.edgelist ../graph_datasets/queen9_9g.col.w results/queen9_9g.txt
-64 ../graph_datasets/queen8_8gb.edgelist ../graph_datasets/queen8_8gb.col.w results/queen8_8gb.txt
-81 ../graph_datasets/queen9_9gb.edgelist ../graph_datasets/queen9_9gb.col.w results/queen9_9gb.txt
-47 ../graph_datasets/myciel5g.edgelist ../graph_datasets/myciel5g.col.w results/myciel5g.txt
-95 ../graph_datasets/myciel6g.edgelist ../graph_datasets/myciel6g.col.w results/myciel6g.txt
-191 ../graph_datasets/myciel7g.edgelist ../graph_datasets/myciel7g.col.w results/myciel7g.txt
-47 ../graph_datasets/myciel5gb.edgelist ../graph_datasets/myciel5gb.col.w results/myciel5gb.txt
-95 ../graph_datasets/myciel6gb.edgelist ../graph_datasets/myciel6gb.col.w results/myciel6gb.txt
-191 ../graph_datasets/myciel7gb.edgelist ../graph_datasets/myciel7gb.col.w results/myciel7gb.txt
-121 ../graph_datasets/queen11_11g.edgelist ../graph_datasets/queen11_11g.col.w results/queen11_11g.txt
-144 ../graph_datasets/queen12_12g.edgelist ../graph_datasets/queen12_12g.col.w results/queen12_12g.txt
-121 ../graph_datasets/queen11_11gb.edgelist ../graph_datasets/queen11_11gb.col.w results/queen11_11gb.txt
-144 ../graph_datasets/queen12_12gb.edgelist ../graph_datasets/queen12_12gb.col.w results/queen12_12gb.txt
-125 ../graph_datasets/DSJC125.5gb.edgelist ../graph_datasets/DSJC125.5gb.col.w results/DSJC125.5gb.txt
-125 ../graph_datasets/DSJC125.9g.edgelist ../graph_datasets/DSJC125.9g.col.w results/DSJC125.9g.txt
-125 ../graph_datasets/DSJC125.9gb.edgelist ../graph_datasets/DSJC125.9gb.col.w results/DSJC125.9gb.txt
-20 ../graph_datasets/GEOM20.edgelist ../graph_datasets/GEOM20.col.w results/GEOM20.txt
-20 ../graph_datasets/GEOM20a.edgelist ../graph_datasets/GEOM20a.col.w results/GEOM20a.txt
-20 ../graph_datasets/GEOM20b.edgelist ../graph_datasets/GEOM20b.col.w results/GEOM20b.txt
-30 ../graph_datasets/GEOM30.edgelist ../graph_datasets/GEOM30.col.w results/GEOM30.txt
-30 ../graph_datasets/GEOM30a.edgelist ../graph_datasets/GEOM30a.col.w results/GEOM30a.txt
-30 ../graph_datasets/GEOM30b.edgelist ../graph_datasets/GEOM30b.col.w results/GEOM30b.txt
-40 ../graph_datasets/GEOM40.edgelist ../graph_datasets/GEOM40.col.w results/GEOM40.txt
-40 ../graph_datasets/GEOM40a.edgelist ../graph_datasets/GEOM40a.col.w results/GEOM40a.txt
-40 ../graph_datasets/GEOM40b.edgelist ../graph_datasets/GEOM40b.col.w results/GEOM40b.txt
-50 ../graph_datasets/GEOM50.edgelist ../graph_datasets/GEOM50.col.w results/GEOM50.txt
-50 ../graph_datasets/GEOM50a.edgelist ../graph_datasets/GEOM50a.col.w results/GEOM50a.txt
-50 ../graph_datasets/GEOM50b.edgelist ../graph_datasets/GEOM50b.col.w results/GEOM50b.txt
-60 ../graph_datasets/GEOM60.edgelist ../graph_datasets/GEOM60.col.w results/GEOM60.txt
-60 ../graph_datasets/GEOM60a.edgelist ../graph_datasets/GEOM60a.col.w results/GEOM60a.txt
-60 ../graph_datasets/GEOM60b.edgelist ../graph_datasets/GEOM60b.col.w results/GEOM60b.txt
-70 ../graph_datasets/GEOM70.edgelist ../graph_datasets/GEOM70.col.w results/GEOM70.txt
-70 ../graph_datasets/GEOM70a.edgelist ../graph_datasets/GEOM70a.col.w results/GEOM70a.txt
-70 ../graph_datasets/GEOM70b.edgelist ../graph_datasets/GEOM70b.col.w results/GEOM70b.txt
-80 ../graph_datasets/GEOM80.edgelist ../graph_datasets/GEOM80.col.w results/GEOM80.txt
-80 ../graph_datasets/GEOM80a.edgelist ../graph_datasets/GEOM80a.col.w results/GEOM80a.txt
-80 ../graph_datasets/GEOM80b.edgelist ../graph_datasets/GEOM80b.col.w results/GEOM80b.txt
-90 ../graph_datasets/GEOM90.edgelist ../graph_datasets/GEOM90.col.w results/GEOM90.txt
-90 ../graph_datasets/GEOM90a.edgelist ../graph_datasets/GEOM90a.col.w results/GEOM90a.txt
-90 ../graph_datasets/GEOM90b.edgelist ../graph_datasets/GEOM90b.col.w results/GEOM90b.txt
-100 ../graph_datasets/GEOM100.edgelist ../graph_datasets/GEOM100.col.w results/GEOM100.txt
-100 ../graph_datasets/GEOM100a.edgelist ../graph_datasets/GEOM100a.col.w results/GEOM100a.txt
-100 ../graph_datasets/GEOM100b.edgelist ../graph_datasets/GEOM100b.col.w results/GEOM100b.txt
-110 ../graph_datasets/GEOM110.edgelist ../graph_datasets/GEOM110.col.w results/GEOM110.txt
-110 ../graph_datasets/GEOM110a.edgelist ../graph_datasets/GEOM110a.col.w results/GEOM110a.txt
-110 ../graph_datasets/GEOM110b.edgelist ../graph_datasets/GEOM110b.col.w results/GEOM110b.txt
-120 ../graph_datasets/GEOM120.edgelist ../graph_datasets/GEOM120.col.w results/GEOM120.txt
-120 ../graph_datasets/GEOM120a.edgelist ../graph_datasets/GEOM120a.col.w results/GEOM120a.txt
-120 ../graph_datasets/GEOM120b.edgelist ../graph_datasets/GEOM120b.col.w results/GEOM120b.txt
-50 ../graph_datasets/R50_1g.edgelist ../graph_datasets/R50_1g.col.w results/R50_1g.txt
-50 ../graph_datasets/R50_5g.edgelist ../graph_datasets/R50_5g.col.w results/R50_5g.txt
-50 ../graph_datasets/R50_9g.edgelist ../graph_datasets/R50_9g.col.w results/R50_9g.txt
-50 ../graph_datasets/R50_1gb.edgelist ../graph_datasets/R50_1gb.col.w results/R50_1gb.txt
-50 ../graph_datasets/R50_5gb.edgelist ../graph_datasets/R50_5gb.col.w results/R50_5gb.txt
-50 ../graph_datasets/R50_9gb.edgelist ../graph_datasets/R50_9gb.col.w results/R50_9gb.txt
-75 ../graph_datasets/R75_1g.edgelist ../graph_datasets/R75_1g.col.w results/R75_1g.txt
-75 ../graph_datasets/R75_5g.edgelist ../graph_datasets/R75_5g.col.w results/R75_5g.txt
-75 ../graph_datasets/R75_9g.edgelist ../graph_datasets/R75_9g.col.w results/R75_9g.txt
-75 ../graph_datasets/R75_1gb.edgelist ../graph_datasets/R75_1gb.col.w results/R75_1gb.txt
-75 ../graph_datasets/R75_5gb.edgelist ../graph_datasets/R75_5gb.col.w results/R75_5gb.txt
-75 ../graph_datasets/R75_9gb.edgelist ../graph_datasets/R75_9gb.col.w results/R75_9gb.txt
-100 ../graph_datasets/R100_1g.edgelist ../graph_datasets/R100_1g.col.w results/R100_1g.txt
-100 ../graph_datasets/R100_9g.edgelist ../graph_datasets/R100_9g.col.w results/R100_9g.txt
-100 ../graph_datasets/R100_1gb.edgelist ../graph_datasets/R100_1gb.col.w results/R100_1gb.txt
-100 ../graph_datasets/R100_5gb.edgelist ../graph_datasets/R100_5gb.col.w results/R100_5gb.txt
-100 ../graph_datasets/R100_9gb.edgelist ../graph_datasets/R100_9gb.col.w results/R100_9gb.txt
-250 ../graph_datasets/DSJC250.1.edgelist ../graph_datasets/DSJC250.1.col.w results/DSJC250.1.txt
-250 ../graph_datasets/DSJC250.5.edgelist ../graph_datasets/DSJC250.5.col.w results/DSJC250.5.txt
-250 ../graph_datasets/DSJC250.9.edgelist ../graph_datasets/DSJC250.9.col.w results/DSJC250.9.txt
-500 ../graph_datasets/DSJC500.1.edgelist ../graph_datasets/DSJC500.1.col.w results/DSJC500.1.txt
-500 ../graph_datasets/DSJC500.5.edgelist ../graph_datasets/DSJC500.5.col.w results/DSJC500.5.txt
-500 ../graph_datasets/DSJC500.9.edgelist ../graph_datasets/DSJC500.9.col.w results/DSJC500.9.txt
+125 -1 2 30000 1 100 ../graph_datasets/DSJC125.1g.edgelist null results/DSJC125_uw.1g.txt
+125 -1 2 30000 1 100 ../graph_datasets/DSJC125.1gb.edgelist null results/DSJC125_uw.1gb.txt
+125 -1 2 30000 1 100 ../graph_datasets/DSJC125.5g.edgelist null results/DSJC125_uw.5g.txt
+125 -1 2 30000 1 100 ../graph_datasets/DSJC125.5gb.edgelist null results/DSJC125_uw.5gb.txt
+125 -1 2 30000 1 100 ../graph_datasets/DSJC125.9g.edgelist null results/DSJC125_uw.9g.txt
+125 -1 2 30000 1 100 ../graph_datasets/DSJC125.9gb.edgelist null results/DSJC125_uw.9gb.txt
+50  -1 2 30000 1 100 ../graph_datasets/R50_1g.edgelist null results/R50_1g_uw.txt
+50  -1 2 30000 1 100 ../graph_datasets/R50_1gb.edgelist null results/R50_1gb_uw.txt
+50  -1 2 30000 1 100 ../graph_datasets/R50_5g.edgelist null results/R50_5g_uw.txt
+50  -1 2 30000 1 100 ../graph_datasets/R50_5gb.edgelist null results/R50_5gb_uw.txt
+50  -1 2 30000 1 100 ../graph_datasets/R50_9g.edgelist null results/R50_9g_uw.txt
+50  -1 2 30000 1 100 ../graph_datasets/R50_9gb.edgelist null results/R50_9gb_uw.txt
+75  -1 2 30000 1 100 ../graph_datasets/R75_1g.edgelist null results/R75_1g_uw.txt
+75  -1 2 30000 1 100 ../graph_datasets/R75_1gb.edgelist null results/R75_1gb_uw.txt
+75  -1 2 30000 1 100 ../graph_datasets/R75_5g.edgelist null results/R75_5g_uw.txt
+75  -1 2 30000 1 100 ../graph_datasets/R75_5gb.edgelist null results/R75_5gb_uw.txt
+75  -1 2 30000 1 100 ../graph_datasets/R75_9g.edgelist null results/R75_9g_uw.txt
+75  -1 2 30000 1 100 ../graph_datasets/R75_9gb.edgelist null results/R75_9gb_uw.txt
+100 -1 2 30000 1 100 ../graph_datasets/R100_1g.edgelist null results/R100_1g_uw.txt
+100 -1 2 30000 1 100 ../graph_datasets/R100_1gb.edgelist null results/R100_1gb_uw.txt
+100 -1 2 30000 1 100 ../graph_datasets/R100_5g.edgelist null results/R100_5g_uw.txt
+100 -1 2 30000 1 100 ../graph_datasets/R100_5gb.edgelist null results/R100_5gb_uw.txt
+100 -1 2 30000 1 100 ../graph_datasets/R100_9g.edgelist null results/R100_9g_uw.txt
+100 -1 2 30000 1 100 ../graph_datasets/R100_9gb.edgelist null results/R100_9gb_uw.txt
+250 -1 2 30000 1 100 ../graph_datasets/DSJC250.1.edgelist null results/DSJC250_uw.1.txt
+250 -1 2 30000 1 100 ../graph_datasets/DSJC250.5.edgelist null results/DSJC250_uw.5.txt
+250 -1 2 30000 1 100 ../graph_datasets/DSJC250.9.edgelist null results/DSJC250_uw.9.txt
+500 -1 2 30000 1 100 ../graph_datasets/DSJC500.1.edgelist null results/DSJC500_uw.1.txt
+500 -1 2 30000 1 100 ../graph_datasets/DSJC500.5.edgelist null results/DSJC500_uw.5.txt
+500 -1 2 30000 1 100 ../graph_datasets/DSJC500.9.edgelist null results/DSJC500_uw.9.txt
