@@ -18,16 +18,14 @@ struct crossover_param_s {
     atomic_int *best_i;
     int size;
     int max_gen_num;
-    uint32_t *edges;
+    block_t *edges;
     int *weights;
-    int *edge_count_list;
     int *color_count;
     int *fitness;
     int *uncolored;
     int population_size;
-    uint32_t *population;
-    atomic_char32_t *used_parents;
-    genetic_criteria_t criteria;
+    block_t *population;
+    atomic_long *used_parents;
 };
 
 struct crossover_result_s {
@@ -47,8 +45,8 @@ struct crossover_result_s {
  */
 void graph_color_random(
     int graph_size, 
-    const uint32_t edges[], 
-    uint32_t colors[][BLOCK_INDEX(graph_size-1)+1], 
+    const block_t edges[][TOTAL_BLOCK_NUM(graph_size)],  
+    block_t colors[][TOTAL_BLOCK_NUM(graph_size)], 
     int max_color
 );
 
@@ -68,12 +66,12 @@ void graph_color_random(
  */
 int graph_color_genetic(
     int graph_size, 
-    uint32_t edges[], 
+    const block_t edges[][TOTAL_BLOCK_NUM(graph_size)], 
     int weights[], 
     int population_size,
     int base_color_count, 
     int max_gen_num, 
-    uint32_t best_solution[][BLOCK_INDEX(graph_size-1)+1], 
+    block_t best_solution[][TOTAL_BLOCK_NUM(graph_size)], 
     int *best_fitness, 
     float *best_solution_time,
     int *uncolored_num,
@@ -91,7 +89,7 @@ int graph_color_genetic(
  * @return If an unused color is found, return it. If all colors are 
  * used, return -1.
  */
-int get_rand_color(int max_color_num, int colors_used, uint32_t used_color_list[]);
+int get_rand_color(int max_color_num, int colors_used, block_t used_color_list[]);
 
 
 /**
@@ -109,54 +107,48 @@ int get_rand_color(int max_color_num, int colors_used, uint32_t used_color_list[
  */
 int merge_colors(
     int graph_size,
-    const uint32_t *parent_color[2],
-    uint32_t child_color[],
-    uint32_t pool[],
+    const block_t *parent_color[2],
+    block_t child_color[],
+    block_t pool[],
     int *pool_total,
-    uint32_t used_vertex_list[]
+    block_t used_vertex_list[]
 );
 
 
 void fix_conflicts(
-    int size,
-    const uint32_t edges[],
-    const int weights[],
-    const int degrees[],
+    int graph_size,
+    const block_t edges[][TOTAL_BLOCK_NUM(graph_size)], 
+    const int values[],
     int conflict_count[],
     int *total_conflicts,
-    uint32_t color[],
-    uint32_t pool[],
-    int *pool_total,
-    genetic_criteria_t criteria
+    block_t color[],
+    block_t pool[],
+    int *pool_total
 );
 
 
 void search_back(
-    int size,
-    const uint32_t edges[],
+    int graph_size,
+    const block_t edges[][TOTAL_BLOCK_NUM(graph_size)], 
     const int weights[],
-    const int degrees[],
-    int conflict_count[],
-    uint32_t child[][BLOCK_INDEX(size-1)+1], 
+    int conflict_counts[],
+    block_t child[][TOTAL_BLOCK_NUM(graph_size)], 
     int current_color,
-    uint32_t pool[],
+    block_t pool[],
     int pool_age[],
     int *pool_count,
-    int *total_conflicts,
-    genetic_criteria_t criteria
+    int *total_conflicts
 );
 
 
 void local_search(
-    int size,
-    const uint32_t edges[],
+    int graph_size,
+    const block_t edges[][TOTAL_BLOCK_NUM(graph_size)], 
     const int weights[],
-    const int degrees[],
-    uint32_t child[][BLOCK_INDEX(size-1)+1], 
+    block_t child[][TOTAL_BLOCK_NUM(graph_size)], 
     int color_count,
-    uint32_t pool[],
-    int *pool_count,
-    genetic_criteria_t criteria
+    block_t pool[],
+    int *pool_count
 );
 
 
@@ -179,16 +171,14 @@ void local_search(
  */
 int crossover(
     int graph_size, 
-    const uint32_t edges[], 
+    const block_t edges[][TOTAL_BLOCK_NUM(graph_size)], 
     const int weights[],
-    const int degrees[],
     int color_num1, 
     int color_num2, 
-    const uint32_t parent1[][BLOCK_INDEX(graph_size-1)+1], 
-    const uint32_t parent2[][BLOCK_INDEX(graph_size-1)+1], 
+    const block_t parent1[][TOTAL_BLOCK_NUM(graph_size)], 
+    const block_t parent2[][TOTAL_BLOCK_NUM(graph_size)], 
     int target_color_count,
-    genetic_criteria_t criteria,
-    uint32_t child[][BLOCK_INDEX(graph_size-1)+1],
+    block_t child[][TOTAL_BLOCK_NUM(graph_size)],
     int *child_color_count,
     int *uncolored
 );

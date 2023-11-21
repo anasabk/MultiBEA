@@ -19,7 +19,7 @@
 
 
 struct test_return {
-    uint32_t *solution;
+    block_t *solution;
     int color_count;
     int fitness;
     int uncolored;
@@ -56,7 +56,7 @@ void* test_graph(void *param) {
     char *weight_filename = ((struct test_param*)param)->weight_filename;
     genetic_criteria_t criteria = MIN_POOL;
 
-    uint32_t edges[BLOCK_INDEX(size*(size-1)/2-1)+1];
+    block_t edges[size][TOTAL_BLOCK_NUM(size)];
     if(!read_graph(graph_filename, size, edges)) {
         printf("Could not initialize graph from %s, exitting ...\n", graph_filename);
         return NULL;
@@ -81,7 +81,7 @@ void* test_graph(void *param) {
     srand(time(NULL));
     srandom(time(NULL));
 
-    printf("Testing the dataset %s:\n", graph_filename);
+    // printf("Testing the dataset %s:\n", graph_filename);
 
     int edge_count[size];
     count_edges(size, edges, edge_count);
@@ -96,17 +96,19 @@ void* test_graph(void *param) {
     int best_color_count = __INT_MAX__, temp_color_count, total_color_count = 0;
     int best_uncolored = __INT_MAX__, temp_uncolored, total_uncolored = 0;
 
-    uint32_t best_colors[max_edge_count][BLOCK_INDEX(size-1)+1], temp_colors[max_edge_count][BLOCK_INDEX(size-1)+1];
-    memset(temp_colors, 0, max_edge_count*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
-    memset(best_colors, 0, max_edge_count*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
+    block_t best_colors[max_edge_count][TOTAL_BLOCK_NUM(size)], temp_colors[max_edge_count][TOTAL_BLOCK_NUM(size)];
+    memset(temp_colors, 0, max_edge_count*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
+    memset(best_colors, 0, max_edge_count*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
 
     if(target_color < 1)
         target_color = graph_color_greedy(size, edges, temp_colors, max_edge_count);
 
+    is_valid(size, edges, target_color, temp_colors);
+
     struct timeval t1, t2;
     float total_excecution_time = 0;
     for(int k = 0; k < test_count; k++) {
-        memset(temp_colors, 0, max_edge_count*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
+        memset(temp_colors, 0, max_edge_count*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
 
         gettimeofday(&t1, NULL);
         temp_color_count = graph_color_genetic(
@@ -139,7 +141,7 @@ void* test_graph(void *param) {
             best_fitness = temp_fitness;
             best_time = temp_time;
             best_uncolored = temp_uncolored;
-            memcpy(best_colors, temp_colors, max_edge_count*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
+            memcpy(best_colors, temp_colors, max_edge_count*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
         }
     }
 
@@ -149,8 +151,8 @@ void* test_graph(void *param) {
     ((struct test_param*)param)->result.fitness = best_fitness;
     ((struct test_param*)param)->result.uncolored = best_uncolored;
     ((struct test_param*)param)->result.best_time = best_time;
-    ((struct test_param*)param)->result.solution = calloc(best_color_count*(BLOCK_INDEX(size-1)+1), sizeof(uint32_t));
-    memmove(((struct test_param*)param)->result.solution, best_colors, best_color_count*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
+    ((struct test_param*)param)->result.solution = calloc(best_color_count*TOTAL_BLOCK_NUM(size), sizeof(block_t));
+    memmove(((struct test_param*)param)->result.solution, best_colors, best_color_count*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
     sprintf(((struct test_param*)param)->result.summary,
         "|%s|%d|%lf|%d|%d|%d|%lf|%f|%f|%f|%f|\n",
         graph_filename, 
@@ -170,7 +172,7 @@ void* test_graph(void *param) {
 }
 
 void __attribute__((optimize("O0"))) test_rand_incea(int size, int crossover_count, int thread_count, float color_density, char *graph_name, char *weight_filename, char *result_filename) {
-    uint32_t edges[BLOCK_INDEX(size*(size-1)/2 - 1) + 1];    
+    block_t edges[size][TOTAL_BLOCK_NUM(size)]; 
 
     int weights[size];
     if(!read_weights(weight_filename, size, weights)) {
@@ -186,8 +188,8 @@ void __attribute__((optimize("O0"))) test_rand_incea(int size, int crossover_cou
     int temp_fitness, total_fitness = 0;
     int temp_color_count, total_color_count = 0;
 
-    uint32_t best_colors[(int)(size*color_density)][BLOCK_INDEX(size-1)+1], temp_colors[(int)(size*color_density)][BLOCK_INDEX(size-1)+1];
-    memset(best_colors, 0, (int)(size*color_density)*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
+    block_t best_colors[(int)(size*color_density)][TOTAL_BLOCK_NUM(size)], temp_colors[(int)(size*color_density)][TOTAL_BLOCK_NUM(size)];
+    memset(best_colors, 0, (int)(size*color_density)*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
 
     char graph_files[6][5][36];
     char *edge_density[] = {
@@ -212,7 +214,7 @@ void __attribute__((optimize("O0"))) test_rand_incea(int size, int crossover_cou
 
             for(k = 0; k < iteration_count; k++) {
                 // printf("%s\n", graph_files[i][j]);
-                memset(temp_colors, 0, (int)(size*color_density)*(BLOCK_INDEX(size-1)+1)*sizeof(uint32_t));
+                memset(temp_colors, 0, (int)(size*color_density)*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
 
                 temp_clock = clock();
                 temp_color_count = graph_color_genetic(
@@ -230,9 +232,7 @@ void __attribute__((optimize("O0"))) test_rand_incea(int size, int crossover_cou
                     MIN_COST
                 );
                 total_execution += (((double)(clock() - temp_clock))/CLOCKS_PER_SEC)/thread_count;
-
-                // is_valid(size, edges, size*color_density, temp_colors);
-
+                
                 total_color_count += temp_color_count;
                 total_fitness += temp_fitness;
                 total_time += temp_time;
