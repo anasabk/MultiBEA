@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#pragma GCC target ("sse4")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -171,7 +172,7 @@ void* test_graph(void *param) {
     return NULL;
 }
 
-void __attribute__((optimize("O0"))) test_rand_incea(int size, int crossover_count, int thread_count, float color_density, char *graph_name, char *weight_filename, char *result_filename) {
+void __attribute__((optimize("O0"))) test_rand_incea(int size, int crossover_count, int thread_count, char *graph_name, char *weight_filename, char *result_filename) {
     block_t edges[size][TOTAL_BLOCK_NUM(size)]; 
 
     int weights[size];
@@ -188,8 +189,8 @@ void __attribute__((optimize("O0"))) test_rand_incea(int size, int crossover_cou
     int temp_fitness, total_fitness = 0;
     int temp_color_count, total_color_count = 0;
 
-    block_t best_colors[(int)(size*color_density)][TOTAL_BLOCK_NUM(size)], temp_colors[(int)(size*color_density)][TOTAL_BLOCK_NUM(size)];
-    memset(best_colors, 0, (int)(size*color_density)*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
+    block_t best_colors[size][TOTAL_BLOCK_NUM(size)], temp_colors[size][TOTAL_BLOCK_NUM(size)];
+    memset(best_colors, 0, size*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
 
     char graph_files[6][5][36];
     char *edge_density[] = {
@@ -200,57 +201,80 @@ void __attribute__((optimize("O0"))) test_rand_incea(int size, int crossover_cou
         "75",
         "90"
     };
-    int i, j, k;
+    int i, j, k, m;
     for(i = 0; i < 6; i++)
         for(j = 1; j < 6; j++)
             sprintf(graph_files[i][j-1], "%s.%s.%d.col", graph_name, edge_density[i], j);
 
+    float color_density[] = {
+        0.04,
+        0.08,
+        0.10,
+        0.15,
+        0.20
+    };
+
+
+    FILE *test_results_f = fopen(result_filename, "a+");
+
     int iteration_count = 1;
     clock_t temp_clock;
     float total_execution = 0;
+    char buffer[512];
     for(i = 0; i < 6; i++) {
         for(j = 0; j < 5; j++) {
-            read_graph(graph_files[i][j], size, edges);
+            total_color_count = 0;
+            total_fitness = 0;
+            total_time = 0;
+            total_uncolored = 0;
 
-            for(k = 0; k < iteration_count; k++) {
-                // printf("%s\n", graph_files[i][j]);
-                memset(temp_colors, 0, (int)(size*color_density)*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
+            for(k = 0; k < 5; k++) {
+                read_graph(graph_files[i][k], size, edges);
 
-                temp_clock = clock();
-                temp_color_count = graph_color_genetic(
-                    size,
-                    edges,
-                    weights,
-                    100,
-                    size*color_density,
-                    crossover_count,
-                    temp_colors,
-                    &temp_fitness,
-                    &temp_time,
-                    &temp_uncolored,
-                    thread_count,
-                    MIN_COST
-                );
-                total_execution += (((double)(clock() - temp_clock))/CLOCKS_PER_SEC)/thread_count;
-                
-                total_color_count += temp_color_count;
-                total_fitness += temp_fitness;
-                total_time += temp_time;
-                total_uncolored += temp_uncolored;
+                for(m = 0; m < iteration_count; m++) {
+                    // printf("%s\n", graph_files[i][j]);
+                    memset(temp_colors, 0, size*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
+
+                    temp_clock = clock();
+                    temp_color_count = graph_color_genetic(
+                        size,
+                        edges,
+                        weights,
+                        100,
+                        size*color_density[j],
+                        crossover_count,
+                        temp_colors,
+                        &temp_fitness,
+                        &temp_time,
+                        &temp_uncolored,
+                        thread_count,
+                        MIN_COST
+                    );
+                    total_execution += (((double)(clock() - temp_clock))/CLOCKS_PER_SEC)/thread_count;
+
+                    // is_valid(size, edges, temp_color_count, temp_colors);
+                    
+                    total_color_count += temp_color_count;
+                    total_fitness += temp_fitness;
+                    total_time += temp_time;
+                    total_uncolored += temp_uncolored;
+                }
             }
+
+            sprintf(buffer,
+                "| %10.6lf | %10.6lf | %10.6lf | %10.6lf |",
+                ((double)total_fitness)/(((double)iteration_count) * 5),
+                ((double)total_uncolored)/(((double)iteration_count) * 5),
+                ((double)total_time)/((double)iteration_count * 5), 
+                ((double)total_execution)/((double)iteration_count * 5)
+            );
+
+            printf("%s\n", buffer);
+            fprintf(test_results_f, "%s\n", buffer);
         }
     }
 
-    char buffer[512];
-    sprintf(buffer,
-        "| %10.6lf | %10.6lf | %10.6lf | %10.6lf |",
-        ((double)total_fitness)/(((double)iteration_count) * 5 * 6),
-        ((double)total_uncolored)/(((double)iteration_count) * 5 * 6),
-        ((double)total_time)/((double)iteration_count * 5 * 6), 
-        ((double)total_execution)/((double)iteration_count * 5 * 6)
-    );
-
-    printf("%s\n", buffer);
+    fclose(test_results_f);
 }
 
 void terminate_jobs(int sig) {
@@ -258,143 +282,135 @@ void terminate_jobs(int sig) {
 }
 
 int main(int argc, char *argv[]) {
-    if(argc < 3) {
-        printf("Too few arguments.\n");
-        return 0;
-    }
+    // if(argc < 3) {
+    //     printf("Too few arguments.\n");
+    //     return 0;
+    // }
 
-    // const rlim_t kStackSize = 8192L * 1024L * 1024L;   // min stack size = 64 Mb
-    // struct rlimit rl;
-    // int result;
+    // // const rlim_t kStackSize = 8192L * 1024L * 1024L;   // min stack size = 64 Mb
+    // // struct rlimit rl;
+    // // int result;
 
-    // result = getrlimit(RLIMIT_STACK, &rl);
-    // if (result == 0)
-    // {
-    //     if (rl.rlim_cur < kStackSize)
-    //     {
-    //         rl.rlim_cur = kStackSize;
-    //         result = setrlimit(RLIMIT_STACK, &rl);
-    //         if (result != 0)
-    //         {
-    //             fprintf(stderr, "setrlimit returned result = %d\n", result);
+    // // result = getrlimit(RLIMIT_STACK, &rl);
+    // // if (result == 0)
+    // // {
+    // //     if (rl.rlim_cur < kStackSize)
+    // //     {
+    // //         rl.rlim_cur = kStackSize;
+    // //         result = setrlimit(RLIMIT_STACK, &rl);
+    // //         if (result != 0)
+    // //         {
+    // //             fprintf(stderr, "setrlimit returned result = %d\n", result);
+    // //         }
+    // //     }
+    // // }
+
+    // struct sigaction action;
+    // memset(&action, 0, sizeof(struct sigaction));
+    // action.sa_handler = terminate_jobs;
+    // sigaction(SIGINT, &action, NULL);
+
+    // terminated = false;
+    // test_thread_count = 0;
+
+    // FILE *test_list_file = fopen(argv[1], "r");
+    // FILE *result_file = fopen(argv[2], "w");
+
+    // pthread_attr_t attr;
+    // pthread_attr_init(&attr);
+
+    // int num_of_threads = atoi(argv[3]);
+    // pthread_t thread_id_list[num_of_threads];
+    // struct test_param *param_list[num_of_threads];
+    // struct timespec thread_wait_time;
+    // thread_wait_time.tv_nsec = 100000000;
+    // thread_wait_time.tv_sec = 0;
+
+    // printf("|  graph name   | target color | best k time | best k | best cost | best uncolored | avg k time | avg k | avg cost | avg uncolored | avg total time |\n");
+    // fprintf(result_file, "|  graph name   | target color | best k time | best k | best cost | best uncolored | avg k time | avg k | avg cost | avg uncolored | avg total time |\n");
+
+    // char buffer[256];
+    // int i, j;
+    // while(!feof(test_list_file) && !terminated) {
+    //     param_list[test_thread_count] = malloc(sizeof(struct test_param));
+
+    //     fgets(buffer, 256, test_list_file);
+    //     buffer[strcspn(buffer, "\n")] = 0;
+
+    //     param_list[test_thread_count]->size = atoi(strtok(buffer, " "));
+    //     param_list[test_thread_count]->target_color = atoi(strtok(NULL, " "));
+    //     param_list[test_thread_count]->thread_count = atoi(strtok(NULL, " "));
+    //     param_list[test_thread_count]->iteration_count = atoi(strtok(NULL, " "));
+    //     param_list[test_thread_count]->test_count = atoi(strtok(NULL, " "));
+    //     param_list[test_thread_count]->population_size = atoi(strtok(NULL, " "));
+    //     strcpy(param_list[test_thread_count]->graph_filename, strtok(NULL, " "));
+    //     strcpy(param_list[test_thread_count]->weight_filename, strtok(NULL, " "));
+    //     strcpy(param_list[test_thread_count]->result_filename, strtok(NULL, " "));
+
+    //     pthread_create(&thread_id_list[test_thread_count], &attr, test_graph, param_list[test_thread_count]);
+    //     test_thread_count++;
+
+    //     while(test_thread_count == num_of_threads && !terminated) {
+    //         for(i = 0; i < test_thread_count; i++) {
+    //             if(pthread_timedjoin_np(thread_id_list[i], NULL, &thread_wait_time) == 0) {
+    //                 fprintf(result_file, "%s", param_list[i]->result.summary);
+    //                 printf("%s", param_list[i]->result.summary);
+    //             	free(param_list[i]->result.solution);
+    //                 free(param_list[i]);
+
+    //                 for(j = i+1; j < num_of_threads; j++) {
+    //                     param_list[j - 1] = param_list[j];
+    //                     thread_id_list[j - 1] = thread_id_list[j];
+    //                 }
+    //                 param_list[num_of_threads-1] = NULL;
+
+    //                 test_thread_count--;
+    //                 break;
+    //             }
     //         }
     //     }
     // }
 
-    struct sigaction action;
-    memset(&action, 0, sizeof(struct sigaction));
-    action.sa_handler = terminate_jobs;
-    sigaction(SIGINT, &action, NULL);
+    // while(test_thread_count > 0 && !terminated) {
+    //     for(i = 0; i < test_thread_count; i++) {
+    //         if(pthread_timedjoin_np(thread_id_list[i], NULL, &thread_wait_time) == 0) {
+    //             fprintf(result_file, "%s", param_list[i]->result.summary);
+    //             printf("%s", param_list[i]->result.summary);
+    //             free(param_list[i]->result.solution);
+    //             free(param_list[i]);
 
-    terminated = false;
-    test_thread_count = 0;
+    //             for(j = i+1; j < num_of_threads; j++) {
+    //                 param_list[j - 1] = param_list[j];
+    //                 thread_id_list[j - 1] = thread_id_list[j];
+    //             }
+    //             param_list[num_of_threads-1] = NULL;
 
-    FILE *test_list_file = fopen(argv[1], "r");
-    FILE *result_file = fopen(argv[2], "w");
+    //             test_thread_count--;
+    //             break;
+    //         }
+    //     }
+    // }
 
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
+    // if(terminated) {
+    //     for(i = 0; i < test_thread_count; i++) {
+    //         pthread_cancel(thread_id_list[i]);
+    //         if(param_list[i] != NULL)
+    //             free(param_list[i]);
+    //     }
 
-    int num_of_threads = atoi(argv[3]);
-    pthread_t thread_id_list[num_of_threads];
-    struct test_param *param_list[num_of_threads];
-    struct timespec thread_wait_time;
-    thread_wait_time.tv_nsec = 100000000;
-    thread_wait_time.tv_sec = 0;
+    //     test_thread_count = 0;
+    // }
 
-    printf("|  graph name   | target color | best k time | best k | best cost | best uncolored | avg k time | avg k | avg cost | avg uncolored | avg total time |\n");
-    fprintf(result_file, "|  graph name   | target color | best k time | best k | best cost | best uncolored | avg k time | avg k | avg cost | avg uncolored | avg total time |\n");
+    // fclose(test_list_file);
+    // fclose(result_file);
 
-    char buffer[256];
-    int i, j;
-    while(!feof(test_list_file) && !terminated) {
-        param_list[test_thread_count] = malloc(sizeof(struct test_param));
+    printf("|  fitness   | uncolored  |    time    | execution time |\n");
+    char buffer[128];
+    int thread_count = 1;
+    int crossover_count = 2000;
+    strcpy(buffer, "../graph_datasets/INCEA100");
+    test_rand_incea(100, crossover_count, thread_count, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/unweighted.txt");
 
-        fgets(buffer, 256, test_list_file);
-        buffer[strcspn(buffer, "\n")] = 0;
-
-        param_list[test_thread_count]->size = atoi(strtok(buffer, " "));
-        param_list[test_thread_count]->target_color = atoi(strtok(NULL, " "));
-        param_list[test_thread_count]->thread_count = atoi(strtok(NULL, " "));
-        param_list[test_thread_count]->iteration_count = atoi(strtok(NULL, " "));
-        param_list[test_thread_count]->test_count = atoi(strtok(NULL, " "));
-        param_list[test_thread_count]->population_size = atoi(strtok(NULL, " "));
-        strcpy(param_list[test_thread_count]->graph_filename, strtok(NULL, " "));
-        strcpy(param_list[test_thread_count]->weight_filename, strtok(NULL, " "));
-        strcpy(param_list[test_thread_count]->result_filename, strtok(NULL, " "));
-
-        pthread_create(&thread_id_list[test_thread_count], &attr, test_graph, param_list[test_thread_count]);
-        test_thread_count++;
-
-        while(test_thread_count == num_of_threads && !terminated) {
-            for(i = 0; i < test_thread_count; i++) {
-                if(pthread_timedjoin_np(thread_id_list[i], NULL, &thread_wait_time) == 0) {
-                    fprintf(result_file, "%s", param_list[i]->result.summary);
-                    printf("%s", param_list[i]->result.summary);
-                	free(param_list[i]->result.solution);
-                    free(param_list[i]);
-
-                    for(j = i+1; j < num_of_threads; j++) {
-                        param_list[j - 1] = param_list[j];
-                        thread_id_list[j - 1] = thread_id_list[j];
-                    }
-                    param_list[num_of_threads-1] = NULL;
-
-                    test_thread_count--;
-                    break;
-                }
-            }
-        }
-    }
-
-    while(test_thread_count > 0 && !terminated) {
-        for(i = 0; i < test_thread_count; i++) {
-            if(pthread_timedjoin_np(thread_id_list[i], NULL, &thread_wait_time) == 0) {
-                fprintf(result_file, "%s", param_list[i]->result.summary);
-                printf("%s", param_list[i]->result.summary);
-                free(param_list[i]->result.solution);
-                free(param_list[i]);
-
-                for(j = i+1; j < num_of_threads; j++) {
-                    param_list[j - 1] = param_list[j];
-                    thread_id_list[j - 1] = thread_id_list[j];
-                }
-                param_list[num_of_threads-1] = NULL;
-
-                test_thread_count--;
-                break;
-            }
-        }
-    }
-
-    if(terminated) {
-        for(i = 0; i < test_thread_count; i++) {
-            pthread_cancel(thread_id_list[i]);
-            if(param_list[i] != NULL)
-                free(param_list[i]);
-        }
-
-        test_thread_count = 0;
-    }
-
-    fclose(test_list_file);
-    fclose(result_file);
-
-    // printf("|  fitness   | uncolored  |    time    | execution time |\n");
-    // char buffer[128];
-    // int thread_count = 5;
-    // int crossover_count = 10000;
-    // strcpy(buffer, "../graph_datasets/INCEA100");
-    // test_rand_incea(100, crossover_count, thread_count, 0.04, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    // test_rand_incea(100, crossover_count, thread_count, 0.08, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    // test_rand_incea(100, crossover_count, thread_count, 0.1, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    // test_rand_incea(100, crossover_count, thread_count, 0.15, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-    // test_rand_incea(100, crossover_count, thread_count, 0.2, buffer, "../graph_datasets/INCEA100.10.1.colw", "results/INCEA100.10.1.txt");
-
-    // strcpy(buffer, "../graph_datasets/INCEA200");
-    // test_rand_incea(200, crossover_count, thread_count, 0.04, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    // test_rand_incea(200, crossover_count, thread_count, 0.08, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    // test_rand_incea(200, crossover_count, thread_count, 0.1, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    // test_rand_incea(200, crossover_count, thread_count, 0.15, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
-    // test_rand_incea(200, crossover_count, thread_count, 0.2, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/INCEA200.10.1.txt");
+    strcpy(buffer, "../graph_datasets/INCEA200");
+    test_rand_incea(200, crossover_count, thread_count, buffer, "../graph_datasets/INCEA200.10.1.colw", "results/unweighted.txt");
 }

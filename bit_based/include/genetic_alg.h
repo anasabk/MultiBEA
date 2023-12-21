@@ -127,21 +127,19 @@ void fix_conflicts(
 );
 
 
-void search_back(
+int search_back(
     int graph_size,
     const block_t edges[][TOTAL_BLOCK_NUM(graph_size)], 
     const int weights[],
-    int conflict_counts[],
     block_t child[][TOTAL_BLOCK_NUM(graph_size)], 
     int current_color,
     block_t pool[],
     int pool_age[],
-    int *pool_count,
-    int *total_conflicts
+    int *pool_count
 );
 
 
-void local_search(
+int local_search(
     int graph_size,
     const block_t edges[][TOTAL_BLOCK_NUM(graph_size)], 
     const int weights[],
