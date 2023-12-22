@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -99,8 +101,19 @@ int graph_color_genetic(
         pthread_create(&thread_id[i], &attr, crossover_thread, &temp_param);
 
     struct crossover_result_s *results[thread_num];
-    for(i = 0; i < thread_num; i++)
-        pthread_join(thread_id[i], (void**)&results[i]);
+    // for(i = 0; i < thread_num; i++)
+    //     pthread_join(thread_id[i], (void**)&results[i]);
+
+    i = 0;
+    struct timespec wait_time;
+    while(i < thread_num) {
+        clock_gettime(CLOCK_REALTIME, &wait_time);
+        wait_time.tv_sec += 1;
+        if(pthread_timedjoin_np(thread_id[i], (void**)&results[i], &wait_time) == 0)
+            i++;
+
+        printf("%10.6lf\n", ((double)fitness[best_i]));
+    }
 
     double best_time = 0;
     for(i = 0; i < thread_num; i++) {
@@ -179,30 +192,6 @@ int merge_colors(
     return total_used;
 }
 
-void rm_vertex(
-    int vertex,
-    int graph_size, 
-    const block_t edges[][TOTAL_BLOCK_NUM(graph_size)], 
-    block_t color[], 
-    block_t pool[], 
-    int conflict_count[],
-    int *total_conflicts,
-    int *pool_total
-) {
-    block_t vert_mask = MASK(vertex);
-    int vert_block = BLOCK_INDEX(vertex);
-    for(int i = 0; i < graph_size; i++)
-        if(CHECK_COLOR(color, i) && (edges[i][vert_block] & vert_mask))
-            conflict_count[i]--;
-
-    color[vert_block] &= ~vert_mask;
-    pool[vert_block] |= vert_mask;
-    (*pool_total)++;
-
-    (*total_conflicts) -= conflict_count[vertex];
-    conflict_count[vertex] = 0;
-}
-
 void fix_conflicts(
     int graph_size,
     const block_t edges[][TOTAL_BLOCK_NUM(graph_size)], 
@@ -214,7 +203,8 @@ void fix_conflicts(
     int *pool_total
 ) {
     // Keep removing problematic vertices until all conflicts are gone.
-    int i, worst_vert = 0;
+    int i, worst_vert = 0, vert_block;
+    block_t vert_mask;
     while(*total_conflicts > 0) {
         // Find the vertex with the most conflicts.
         for(i = 0; i < graph_size; i++) {
@@ -226,16 +216,18 @@ void fix_conflicts(
             }
         }
 
-        rm_vertex(
-            worst_vert,
-            graph_size,
-            edges,
-            color,
-            pool,
-            conflict_count,
-            total_conflicts,
-            pool_total
-        );
+        vert_mask = MASK(worst_vert);
+        vert_block = BLOCK_INDEX(worst_vert);
+        for(i = 0; i < graph_size; i++)
+            if(CHECK_COLOR(color, i) && (edges[i][vert_block] & vert_mask))
+                conflict_count[i]--;
+
+        color[vert_block] &= ~vert_mask;
+        pool[vert_block] |= vert_mask;
+        (*pool_total)++;
+
+        (*total_conflicts) -= conflict_count[worst_vert];
+        conflict_count[worst_vert] = 0;
     }
 }
 
@@ -246,7 +238,6 @@ int search_back(
     block_t child[][TOTAL_BLOCK_NUM(graph_size)], 
     int current_color,
     block_t pool[],
-    int pool_age[],
     int *pool_count
 ) {
     // Search back to try to place vertices in the pool in previous colors.
@@ -259,7 +250,6 @@ int search_back(
         i_mask = MASK(i);
 
         if(pool[i_block] & i_mask) {
-            // for(j = pool_age[i]; j < current_color; j++) {
             for(j = 0; j < current_color; j++) {
                 conflict_count = 0;
                 for(k = 0; k < TOTAL_BLOCK_NUM(graph_size) && conflict_count < 2; k++) {
@@ -387,70 +377,45 @@ int crossover(
 
     // info of pool.
     int pool_count = 0;
-    int pool_age[graph_size];
     block_t pool[TOTAL_BLOCK_NUM(graph_size)];
     memset(pool, 0, (TOTAL_BLOCK_NUM(graph_size))*sizeof(block_t));
-    memset(pool_age, 0, graph_size*sizeof(int));
 
     int conflict_count[graph_size];
     memset(conflict_count, 0, graph_size*sizeof(int));
 
     // Main loop that iterates over all of the colors of the parents.
-    block_t const *parent_color_p[2];
     int color1, color2, last_color = 0;
     int i, j, child_color = 0, total_conflicts = 0;
     int used_color_count = 0, temp_v_count;
     for(i = 0; i < max_iter_num && used_vertex_count < graph_size; i++) {
-        // // Pick 2 random colors.
-        // color1 = get_rand_color(color_num1, i, used_color_list[0]);
-        // color2 = get_rand_color(color_num2, i, used_color_list[1]);
-
-        // if(color1 == -1)
-        //     parent_color_p[0] = NULL;
-        // else
-        //     parent_color_p[0] = parent1[color1];
-
-        // if(color2 == -1)
-        //     parent_color_p[1] = NULL;
-        // else
-        //     parent_color_p[1] = parent2[color2];
-
         // The child still has colors that weren't populated.
         if(i < target_color_count) {
             child_color = i;
 
-            // // do {
-                // Pick 2 random colors.
-                color1 = get_rand_color(color_num1, used_color_count, used_color_list[0]);
-                color2 = get_rand_color(color_num2, used_color_count, used_color_list[1]);
+            // Pick 2 random colors.
+            color1 = get_rand_color(color_num1, used_color_count, used_color_list[0]);
+            color2 = get_rand_color(color_num2, used_color_count, used_color_list[1]);
 
-                used_color_count++;
+            used_color_count++;
 
-                temp_v_count = 0;  
-                if(color1 != -1 && color2 != -1)
-                    for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
-                        child[child_color][j] = ((parent1[color1][j] | parent2[color2][j]) & ~(used_vertex_list[j]));
-                        temp_v_count += __builtin_popcountl(child[child_color][j]);
-                    }
+            temp_v_count = 0;  
+            if(color1 != -1 && color2 != -1)
+                for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
+                    child[child_color][j] = ((parent1[color1][j] | parent2[color2][j]) & ~(used_vertex_list[j]));
+                    temp_v_count += __builtin_popcountl(child[child_color][j]);
+                }
 
-                else if(color1 != -1)
-                    for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
-                        child[child_color][j] = (parent1[color1][j] & ~(used_vertex_list[j]));
-                        temp_v_count += __builtin_popcountl(child[child_color][j]);
-                    }
+            else if(color1 != -1)
+                for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
+                    child[child_color][j] = (parent1[color1][j] & ~(used_vertex_list[j]));
+                    temp_v_count += __builtin_popcountl(child[child_color][j]);
+                }
 
-                else if(color2 != -1)
-                    for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
-                        child[child_color][j] = (parent2[color2][j] & ~(used_vertex_list[j]));
-                        temp_v_count += __builtin_popcountl(child[child_color][j]);
-                    }
-
-            // } while (used_color_count < max_color_num && temp_v_count == 0);
-
-            // if(used_color_count < max_color_num && temp_v_count == 0) {
-            //     i--;
-            //     continue;
-            // }
+            else if(color2 != -1)
+                for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
+                    child[child_color][j] = (parent2[color2][j] & ~(used_vertex_list[j]));
+                    temp_v_count += __builtin_popcountl(child[child_color][j]);
+                }
 
             used_vertex_count += temp_v_count;
 
@@ -461,16 +426,6 @@ int crossover(
 
             memset(pool, 0, (TOTAL_BLOCK_NUM(graph_size))*sizeof(block_t));
             pool_count = 0;
-
-            // child_color = i;
-            // used_vertex_count += merge_colors(
-            //     graph_size,
-            //     parent_color_p,
-            //     child[child_color],
-            //     pool,
-            //     &pool_count,
-            //     used_vertex_list
-            // );
 
             total_conflicts = count_conflicts(
                 graph_size,
@@ -511,35 +466,15 @@ int crossover(
             child, 
             child_color,
             pool,
-            pool_age,
             &pool_count
         );
-
-        // local_search(
-        //     graph_size,
-        //     edges,
-        //     weights,
-        //     child, 
-        //     child_color,
-        //     pool,
-        //     &pool_count
-        // );
-
-        // // Update the age records of vertices in the pool.
-        // for(j = 0; j < graph_size; j++) {
-        //     if(CHECK_COLOR(pool, j))
-        //         pool_age[j]++;
-        //     else
-        //         pool_age[j] = 0;
-        // }
     }
 
     // Record the last color of the child.
     last_color = child_color + 1;
 
     // Another last local search.
-    while(
-    local_search (
+    local_search(
         graph_size,
         edges,
         weights,
@@ -547,18 +482,17 @@ int crossover(
         child_color,
         pool,
         &pool_count
-    ));
+    );
 
-    // search_back(
-    //     graph_size,
-    //     edges,
-    //     weights,
-    //     child, 
-    //     child_color,
-    //     pool,
-    //     pool_age,
-    //     &pool_count
-    // );
+    search_back(
+        graph_size,
+        edges,
+        weights,
+        child, 
+        child_color,
+        pool,
+        &pool_count
+    );
 
     // If the pool is not empty, randomly allocate the remaining vertices in the colors.
     int fitness = 0, temp_block;
@@ -612,7 +546,7 @@ void* crossover_thread(void *param) {
     block_t child[base_color_count][TOTAL_BLOCK_NUM(graph_size)];
     int temp_target_color = *target_color_count;
     int temp_uncolored;
-    int parent1, parent2, dead_parent, child_colors, temp_fitness, best = 0;
+    int parent1, parent2, child_colors, temp_fitness, best = 0;
     int bad_parent;
     for(int i = 0; i < max_gen_num; i++) {
         temp_target_color = *target_color_count;
@@ -621,7 +555,6 @@ void* crossover_thread(void *param) {
         memset(child, 0, (TOTAL_BLOCK_NUM(graph_size))*base_color_count*sizeof(block_t));
 
         // Pick 2 random parents
-        dead_parent = -1;
         do { parent1 = rand()%population_size; } while (CHECK_COLOR(used_parents, parent1));
         SET_COLOR(used_parents, parent1);
         do { parent2 = rand()%population_size; } while (CHECK_COLOR(used_parents, parent2));
@@ -662,35 +595,10 @@ void* crossover_thread(void *param) {
                 best = bad_parent;
                 gettimeofday(&t2, NULL);
                 last_solution_time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0;   // us to ms
+
+                // printf("%10.6lf | %10.6lf\n", ((double)fitness[*best_i]), last_solution_time);
             }
         }
-
-        // // Check if the child is better than any of the parents.
-        // if (temp_fitness <= fitness[parent1] && child_colors <= color_count[parent1])
-        //     dead_parent = parent1;
-
-        // else if (temp_fitness <= fitness[parent2] && child_colors <= color_count[parent2])
-        //     dead_parent = parent2;
-
-        // else if (random()%10000 < 5)
-        //     dead_parent = (parent1 == *best_i) ? parent2 : parent1;
-
-        // // Replace a dead parent.
-        // if(dead_parent > -1) {
-        //     memmove((*population)[dead_parent], child, (TOTAL_BLOCK_NUM(graph_size))*base_color_count*sizeof(block_t));
-        //     color_count[dead_parent] = child_colors;
-        //     fitness[dead_parent] = temp_fitness;
-        //     uncolored[dead_parent] = temp_uncolored;
-
-        //     if (temp_fitness < fitness[*best_i] ||
-        //         (temp_fitness == fitness[*best_i] && child_colors < color_count[*best_i])
-        //     ) {
-        //         *best_i = dead_parent;
-        //         best = dead_parent;
-        //         gettimeofday(&t2, NULL);
-        //         last_solution_time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0;   // us to ms
-        //     }
-        // }
 
         // Make the target harder if it was found.
         if(temp_fitness == 0 && child_colors <= *target_color_count) {

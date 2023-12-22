@@ -1,3 +1,6 @@
+100 5 1 30000 1 100 ../graph_datasets/R100_1gb.edgelist null results/R100_1gb_uw.txt
+100 15 1 300000 1 100 ../graph_datasets/R100_5gb.edgelist null results/R100_5gb_uw.txt
+100 35 1 300000 1 100 ../graph_datasets/R100_9gb.edgelist null results/R100_9gb_uw.txt
 50  -1 5 30000 1 100 ../graph_datasets/R50_1g.edgelist null results/R50_1g_uw.txt
 50  -1 5 30000 1 100 ../graph_datasets/R50_1gb.edgelist null results/R50_1gb_uw.txt
 50  -1 5 30000 1 100 ../graph_datasets/R50_5g.edgelist null results/R50_5g_uw.txt
@@ -11,11 +14,8 @@
 75  -1 5 30000 1 100 ../graph_datasets/R75_9g.edgelist null results/R75_9g_uw.txt
 75  -1 5 30000 1 100 ../graph_datasets/R75_9gb.edgelist null results/R75_9gb_uw.txt
 100 -1 5 30000 1 100 ../graph_datasets/R100_1g.edgelist null results/R100_1g_uw.txt
-100 -1 5 30000 1 100 ../graph_datasets/R100_1gb.edgelist null results/R100_1gb_uw.txt
 100 -1 5 30000 1 100 ../graph_datasets/R100_5g.edgelist null results/R100_5g_uw.txt
-100 -1 5 30000 1 100 ../graph_datasets/R100_5gb.edgelist null results/R100_5gb_uw.txt
 100 -1 5 30000 1 100 ../graph_datasets/R100_9g.edgelist null results/R100_9g_uw.txt
-100 -1 5 30000 1 100 ../graph_datasets/R100_9gb.edgelist null results/R100_9gb_uw.txt
 125 -1 5 30000 1 100 ../graph_datasets/DSJC125.1g.edgelist null results/DSJC125_uw.1g.txt
 125 -1 5 30000 1 100 ../graph_datasets/DSJC125.1gb.edgelist null results/DSJC125_uw.1gb.txt
 125 -1 5 30000 1 100 ../graph_datasets/DSJC125.5g.edgelist null results/DSJC125_uw.5g.txt

@@ -134,7 +134,6 @@ int search_back(
     block_t child[][TOTAL_BLOCK_NUM(graph_size)], 
     int current_color,
     block_t pool[],
-    int pool_age[],
     int *pool_count
 );
 
