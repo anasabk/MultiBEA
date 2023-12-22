@@ -363,9 +363,6 @@ int crossover(
     // max number of colors of the two parents.
     int max_color_num = color_num1 > color_num2 ? color_num1 : color_num2;
 
-    // The max number of iterations over colors in the main loop.
-    int max_iter_num = max_color_num > target_color_count ? max_color_num : target_color_count;
-
     // list of used colors in the parents.
     block_t used_color_list[2][TOTAL_BLOCK_NUM(max_color_num)];
     memset(used_color_list, 0, 2*TOTAL_BLOCK_NUM(max_color_num)*sizeof(block_t));
@@ -385,43 +382,39 @@ int crossover(
 
     // Main loop that iterates over all of the colors of the parents.
     int color1, color2, last_color = 0;
-    int i, j, child_color = 0, total_conflicts = 0;
-    int used_color_count = 0, temp_v_count;
-    for(i = 0; i < max_iter_num && used_vertex_count < graph_size; i++) {
+    int i, j, total_conflicts = 0;
+    int temp_v_count;
+    for(i = 0; i < target_color_count; i++) {
         // The child still has colors that weren't populated.
-        if(i < target_color_count) {
-            child_color = i;
-
+        if(used_vertex_count < graph_size) {
             // Pick 2 random colors.
-            color1 = get_rand_color(color_num1, used_color_count, used_color_list[0]);
-            color2 = get_rand_color(color_num2, used_color_count, used_color_list[1]);
-
-            used_color_count++;
+            color1 = get_rand_color(color_num1, i, used_color_list[0]);
+            color2 = get_rand_color(color_num2, i, used_color_list[1]);
 
             temp_v_count = 0;  
             if(color1 != -1 && color2 != -1)
                 for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
-                    child[child_color][j] = ((parent1[color1][j] | parent2[color2][j]) & ~(used_vertex_list[j]));
-                    temp_v_count += __builtin_popcountl(child[child_color][j]);
+                    child[i][j] = ((parent1[color1][j] | parent2[color2][j]) & ~(used_vertex_list[j]));
+                    temp_v_count += __builtin_popcountl(child[i][j]);
                 }
 
             else if(color1 != -1)
                 for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
-                    child[child_color][j] = (parent1[color1][j] & ~(used_vertex_list[j]));
-                    temp_v_count += __builtin_popcountl(child[child_color][j]);
+                    child[i][j] = (parent1[color1][j] & ~(used_vertex_list[j]));
+                    temp_v_count += __builtin_popcountl(child[i][j]);
                 }
 
             else if(color2 != -1)
                 for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
-                    child[child_color][j] = (parent2[color2][j] & ~(used_vertex_list[j]));
-                    temp_v_count += __builtin_popcountl(child[child_color][j]);
+                    child[i][j] = (parent2[color2][j] & ~(used_vertex_list[j]));
+                    temp_v_count += __builtin_popcountl(child[i][j]);
                 }
 
             used_vertex_count += temp_v_count;
 
             for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
-                child[child_color][j] |= pool[j];
-                used_vertex_list[j] |= child[child_color][j];
+                child[i][j] |= pool[j];
+                used_vertex_list[j] |= child[i][j];
             }
 
             memset(pool, 0, (TOTAL_BLOCK_NUM(graph_size))*sizeof(block_t));
@@ -429,7 +422,7 @@ int crossover(
 
             total_conflicts = count_conflicts(
                 graph_size,
-                child[child_color],
+                child[i],
                 edges,
                 conflict_count
             );
@@ -440,7 +433,7 @@ int crossover(
                 weights,
                 conflict_count,
                 &total_conflicts,
-                child[child_color],
+                child[i],
                 pool,
                 &pool_count
             );
@@ -449,14 +442,8 @@ int crossover(
          * All of the child's colors were visited, merge the current colors
          * of the parents with the pool.
          */
-        } else if(used_vertex_count < graph_size) {
-            for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++)
-                pool[j] |= ~used_vertex_list[j];
-            pool[TOTAL_BLOCK_NUM(graph_size)] &= ((0xFFFFFFFFFFFFFFFF) >> (TOTAL_BLOCK_NUM(graph_size)*sizeof(block_t)*8 - graph_size));
-
-            pool_count += (graph_size - used_vertex_count);
-            used_vertex_count = graph_size;
-            memset(used_vertex_list, 0xFF, (TOTAL_BLOCK_NUM(graph_size))*sizeof(block_t));
+        } else if(pool_count == 0) {
+            break;
         }
 
         search_back(
@@ -464,14 +451,23 @@ int crossover(
             edges,
             weights,
             child, 
-            child_color,
+            i,
             pool,
             &pool_count
         );
     }
 
-    // Record the last color of the child.
-    last_color = child_color + 1;
+    last_color = i;
+
+    if(used_vertex_count < graph_size) {
+        for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++)
+            pool[j] |= ~used_vertex_list[j];
+        pool[TOTAL_BLOCK_NUM(graph_size)] &= ((0xFFFFFFFFFFFFFFFF) >> (TOTAL_BLOCK_NUM(graph_size)*sizeof(block_t)*8 - graph_size));
+
+        pool_count += (graph_size - used_vertex_count);
+        used_vertex_count = graph_size;
+        memset(used_vertex_list, 0xFF, (TOTAL_BLOCK_NUM(graph_size))*sizeof(block_t));
+    } 
 
     // Another last local search.
     local_search(
@@ -479,7 +475,7 @@ int crossover(
         edges,
         weights,
         child,
-        child_color,
+        target_color_count,
         pool,
         &pool_count
     );
@@ -489,7 +485,7 @@ int crossover(
         edges,
         weights,
         child, 
-        child_color,
+        target_color_count,
         pool,
         &pool_count
     );
