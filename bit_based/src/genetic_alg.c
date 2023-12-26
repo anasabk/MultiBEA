@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#pragma GCC target ("sse4")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,13 +44,14 @@ int graph_color_genetic(
     block_t best_solution[][TOTAL_BLOCK_NUM(graph_size)], 
     int *best_fitness, 
     float *best_solution_time,
+    int *best_itertion,
     int *uncolored_num,
     int thread_num,
     genetic_criteria_t criteria
 ) {
     // Count the degrees of each vertex
-    int edge_count_list[graph_size];
-    count_edges(graph_size, edges, edge_count_list);
+    int edge_degree_list[graph_size];
+    count_edges(graph_size, edges, edge_degree_list);
 
     block_t population[population_size][base_color_count][TOTAL_BLOCK_NUM(graph_size)];
     int color_count[population_size];
@@ -67,8 +69,9 @@ int graph_color_genetic(
      */
     int i;
     for (i = 0; i < population_size; i++) {
-        graph_color_random(graph_size, edges, population[i], base_color_count);   
+        graph_color_random(graph_size, edges, population[i], base_color_count);
         color_count[i] = base_color_count;
+        // color_count[i] = graph_color_greedy(graph_size, edges, population[i], graph_size);
         fitness[i] = __INT_MAX__;
     }
 
@@ -78,16 +81,95 @@ int graph_color_genetic(
     atomic_long used_parents[(TOTAL_BLOCK_NUM(population_size))];
     memset(used_parents, 0, (TOTAL_BLOCK_NUM(population_size))*sizeof(atomic_long));
 
-    atomic_int target_color = base_color_count;
+    // block_t temp_population[population_size][graph_size][TOTAL_BLOCK_NUM(graph_size)];
+    // int temp_color_count[population_size];
+    // int temp_uncolored[population_size];
+    // int temp_fitness[population_size];
+
+    // atomic_int best_i = 0;
+    // atomic_int target_color;
+    // for(int j = 0; j < 5; j++) {
+    //     memcpy(temp_population, population, population_size * graph_size * (TOTAL_BLOCK_NUM(graph_size)) * sizeof(block_t));
+    //     memcpy(temp_uncolored, uncolored, population_size*sizeof(int));
+    //     memcpy(temp_fitness, fitness, population_size*sizeof(int));
+    //     memcpy(temp_color_count, color_count, population_size*sizeof(int));
+
+    //     target_color = base_color_count;
+    //     best_i = 0;
+    //     struct crossover_param_s temp_param = {
+    //         base_color_count,
+    //         &target_color,
+    //         &best_i,
+    //         graph_size,
+    //         max_gen_num,
+    //         (block_t*)edges,
+    //         criteria == MIN_COST ? weights : edge_degree_list,
+    //         temp_color_count,
+    //         temp_fitness,
+    //         temp_uncolored,
+    //         population_size,
+    //         (block_t*)temp_population,
+    //         used_parents
+    //     };
+
+    //     double best_time;
+
+    //     pthread_t thread_id[thread_num];
+    //     for(i = 0; i < thread_num; i++)
+    //         pthread_create(&thread_id[i], &attr, crossover_thread, &temp_param);
+
+    //     struct crossover_result_s *results[thread_num];
+    //     for(i = 0; i < thread_num; i++)
+    //         pthread_join(thread_id[i], (void**)&results[i]);
+
+    //     // i = 0;
+    //     // struct timespec wait_time;
+    //     // FILE *out_file = fopen("results/local_optima_tests.txt", "a+");
+    //     // int j = 0;
+    //     // while(i < thread_num) {
+    //     //     if(fitness[best_i] == 0 || j > 500) 
+    //     //         target_color = -1;
+
+    //     //     clock_gettime(CLOCK_REALTIME, &wait_time);
+    //     //     wait_time.tv_sec += 1;
+    //     //     if(pthread_timedjoin_np(thread_id[i], (void**)&results[i], &wait_time) == 0)
+    //     //         i++;
+
+    //     //     // printf("%10.6lf\n", ((double)fitness[best_i]));
+    //     //     fprintf(out_file, "%10.6lf\n", ((double)fitness[best_i]));
+    //     //     j++;
+    //     // }
+
+    //     // fprintf(out_file, "\n");
+    //     // fclose(out_file);
+
+    //     best_time = 0;
+    //     for(i = 0; i < thread_num; i++) {
+    //         if(best_i == results[i]->best_i)
+    //             best_time = results[i]->best_time;
+    //         free(results[i]);
+    //     }
+
+    //     *best_fitness = fitness[best_i];
+    //     *uncolored_num = uncolored[best_i];
+    //     *best_solution_time = best_time;
+    //     memcpy(best_solution, temp_population[best_i], base_color_count * (TOTAL_BLOCK_NUM(graph_size)) * sizeof(block_t));
+    // }
+
+    // return temp_color_count[best_i];
+
     atomic_int best_i = 0;
+    atomic_int target_color = base_color_count;
+    atomic_int child_count = 0;
     struct crossover_param_s temp_param = {
         base_color_count,
         &target_color,
         &best_i,
+        &child_count,
         graph_size,
         max_gen_num,
         (block_t*)edges,
-        criteria == MIN_COST ? weights : edge_count_list,
+        criteria == MIN_COST ? weights : edge_degree_list,
         color_count,
         fitness,
         uncolored,
@@ -101,30 +183,23 @@ int graph_color_genetic(
         pthread_create(&thread_id[i], &attr, crossover_thread, &temp_param);
 
     struct crossover_result_s *results[thread_num];
-    // for(i = 0; i < thread_num; i++)
-    //     pthread_join(thread_id[i], (void**)&results[i]);
-
-    i = 0;
-    struct timespec wait_time;
-    while(i < thread_num) {
-        clock_gettime(CLOCK_REALTIME, &wait_time);
-        wait_time.tv_sec += 1;
-        if(pthread_timedjoin_np(thread_id[i], (void**)&results[i], &wait_time) == 0)
-            i++;
-
-        printf("%10.6lf\n", ((double)fitness[best_i]));
-    }
+    for(i = 0; i < thread_num; i++)
+        pthread_join(thread_id[i], (void**)&results[i]);
 
     double best_time = 0;
+    int temp_best_iteration = 0;
     for(i = 0; i < thread_num; i++) {
-        if(best_i == results[i]->best_i)
+        if(best_i == results[i]->best_i) {
             best_time = results[i]->best_time;
+            temp_best_iteration = results[i]->iteration_count;
+        }
         free(results[i]);
     }
 
     *best_fitness = fitness[best_i];
     *uncolored_num = uncolored[best_i];
     *best_solution_time = best_time;
+    *best_itertion = temp_best_iteration;
     memcpy(best_solution, population[best_i], base_color_count * (TOTAL_BLOCK_NUM(graph_size)) * sizeof(block_t));
 
     return color_count[best_i];
@@ -151,45 +226,6 @@ int get_rand_color(int max_color_num, int colors_used, block_t used_color_list[]
             return temp;
         }
     }
-}
-
-int merge_colors(
-    int graph_size,
-    const block_t *parent_color[2],
-    block_t child_color[],
-    block_t pool[],
-    int *pool_total,
-    block_t used_vertex_list[]
-) {
-    int total_used = 0;
-    if(parent_color[0] == NULL || parent_color[1] == NULL) {
-        const block_t *non_null = parent_color[0] == NULL ? parent_color[1] : parent_color[0];
-        
-        if(non_null != NULL) {
-            for(int i = 0; i < (TOTAL_BLOCK_NUM(graph_size)); i++) {
-                child_color[i] |= (non_null[i] & ~(used_vertex_list[i]));
-                used_vertex_list[i] |= child_color[i];
-                total_used += __builtin_popcountl(child_color[i]);
-            }
-        }
-
-    } else {
-        for(int i = 0; i < (TOTAL_BLOCK_NUM(graph_size)); i++) {
-            child_color[i] |= ((parent_color[0][i] | parent_color[1][i]) & ~(used_vertex_list[i]));
-            used_vertex_list[i] |= child_color[i];
-            total_used += __builtin_popcountl(child_color[i]);
-        }
-    }
-
-    for(int i = 0; i < (TOTAL_BLOCK_NUM(graph_size)); i++) {
-        if(pool[i]) {
-            child_color[i] |= pool[i];
-            *pool_total -= __builtin_popcountl(pool[i]);
-            pool[i] = 0;
-        }
-    }
-
-    return total_used;
 }
 
 void fix_conflicts(
@@ -244,7 +280,7 @@ int search_back(
     int conflict_count, last_conflict, temp_block, last_conflict_block;
     block_t i_mask, temp_mask;
     int i, j, k, i_block;
-    int switch_count = 0;
+    // int switch_count = 0;
     for(i = 0; i < graph_size && (*pool_count) > 0; i++) {
         i_block = BLOCK_INDEX(i);
         i_mask = MASK(i);
@@ -252,9 +288,13 @@ int search_back(
         if(pool[i_block] & i_mask) {
             for(j = 0; j < current_color; j++) {
                 conflict_count = 0;
-                for(k = 0; k < TOTAL_BLOCK_NUM(graph_size) && conflict_count < 2; k++) {
-                    if(child[j][k] & edges[i][k]) {
-                        conflict_count += __builtin_popcountl(child[j][k] & edges[i][k]);
+                for(k = 0; k < TOTAL_BLOCK_NUM(graph_size); k++) {
+                    temp_mask = child[j][k] & edges[i][k];
+                    if(temp_mask) {
+                        conflict_count += __builtin_popcountl(temp_mask);
+                        if(conflict_count > 1)
+                            break;
+                        last_conflict = sizeof(block_t)*8*(k + 1) - 1 - __builtin_clzl(temp_mask);
                         last_conflict_block = k;
                     }
                 }
@@ -266,11 +306,6 @@ int search_back(
                     break;
 
                 } else if (conflict_count == 1) {
-                    for(k = 0; k < sizeof(block_t)*8; k++) 
-                        if((((child[j][last_conflict_block] & edges[i][last_conflict_block]) >> k) & 1))
-                            break;
-                    last_conflict = last_conflict_block*sizeof(block_t)*8 + k;
-
                     if(weights[last_conflict] < weights[i]) {
                         child[j][i_block] |= i_mask;
                         pool[i_block] &= ~i_mask;
@@ -280,7 +315,7 @@ int search_back(
                         child[j][temp_block] &= ~temp_mask;
                         pool[temp_block] |= temp_mask;
 
-                        switch_count++;
+                        // switch_count++;
                         break;
                     }
                 }
@@ -288,7 +323,7 @@ int search_back(
         }
     }
 
-    return switch_count;
+    // return switch_count;
 }
 
 int local_search(
@@ -300,7 +335,8 @@ int local_search(
     block_t pool[],
     int *pool_count
 ) {
-    int i, j, k, i_block, switch_count = 0;
+    int i, j, k, i_block;
+    // int switch_count = 0;
     block_t i_mask;
     int competition;
     int conflict_count;
@@ -327,7 +363,7 @@ int local_search(
 
                 // Swap if no conflicts were found, or competition was smaller than the weight.
                 if(competition < weights[i]) {
-                    switch_count++;
+                    // switch_count++;
 
                     for(k = 0; k < TOTAL_BLOCK_NUM(graph_size); k++) {
                         child[j][k] &= ~conflict_array[k];
@@ -344,7 +380,7 @@ int local_search(
         }
     }
 
-    return switch_count;
+    // return switch_count;
 }
 
 int crossover(
@@ -391,6 +427,7 @@ int crossover(
             color1 = get_rand_color(color_num1, i, used_color_list[0]);
             color2 = get_rand_color(color_num2, i, used_color_list[1]);
 
+            // Merge he wo colors
             temp_v_count = 0;  
             if(color1 != -1 && color2 != -1)
                 for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
@@ -412,6 +449,7 @@ int crossover(
 
             used_vertex_count += temp_v_count;
 
+            // Merge the pool with the new color
             for(j = 0; j < (TOTAL_BLOCK_NUM(graph_size)); j++) {
                 child[i][j] |= pool[j];
                 used_vertex_list[j] |= child[i][j];
@@ -419,6 +457,7 @@ int crossover(
 
             memset(pool, 0, (TOTAL_BLOCK_NUM(graph_size))*sizeof(block_t));
             pool_count = 0;
+
 
             total_conflicts = count_conflicts(
                 graph_size,
@@ -527,6 +566,7 @@ void* crossover_thread(void *param) {
     int base_color_count = ((struct crossover_param_s*)param)->base_color_count;
     atomic_int *target_color_count = ((struct crossover_param_s*)param)->target_color_count;
     atomic_int *best_i = ((struct crossover_param_s*)param)->best_i;
+    atomic_int *child_count = ((struct crossover_param_s*)param)->child_count;
     int graph_size = ((struct crossover_param_s*)param)->size;
     int max_gen_num = ((struct crossover_param_s*)param)->max_gen_num;
     const block_t (*edges)[][TOTAL_BLOCK_NUM(graph_size)] = (block_t (*)[][TOTAL_BLOCK_NUM(graph_size)])((struct crossover_param_s*)param)->edges;
@@ -544,6 +584,8 @@ void* crossover_thread(void *param) {
     int temp_uncolored;
     int parent1, parent2, child_colors, temp_fitness, best = 0;
     int bad_parent;
+    int best_iteration = 0;
+    FILE *out_file = fopen("results/iteration_tests.txt", "a+");
     for(int i = 0; i < max_gen_num; i++) {
         temp_target_color = *target_color_count;
 
@@ -578,7 +620,7 @@ void* crossover_thread(void *param) {
             bad_parent = parent1;
 
         // Replace a dead parent.
-        if(temp_fitness <= fitness[bad_parent] && child_colors <= color_count[bad_parent]) {
+        if(child_colors <= color_count[bad_parent] && temp_fitness <= fitness[bad_parent]) {
             memmove((*population)[bad_parent], child, (TOTAL_BLOCK_NUM(graph_size))*base_color_count*sizeof(block_t));
             color_count[bad_parent] = child_colors;
             fitness[bad_parent] = temp_fitness;
@@ -591,8 +633,12 @@ void* crossover_thread(void *param) {
                 best = bad_parent;
                 gettimeofday(&t2, NULL);
                 last_solution_time = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0;   // us to ms
+                best_iteration = *child_count;
 
-                // printf("%10.6lf | %10.6lf\n", ((double)fitness[*best_i]), last_solution_time);
+                // printf("%10d | %10d | | %10.6lf\n", fitness[*best_i], last_solution_time, *child_count, uncolored[*best_i]);
+                // fprintf(out_file, "%10d | %10d | | %10.6lf\n", fitness[*best_i], last_solution_time, *child_count, uncolored[*best_i]);
+                // if(fitness[*best_i] == 0)
+                //     break;
             }
         }
 
@@ -605,11 +651,17 @@ void* crossover_thread(void *param) {
 
         RESET_COLOR(used_parents, parent1);
         RESET_COLOR(used_parents, parent2);
+
+        (*child_count)++;
     }
+
+    fprintf(out_file, "\n");
+    fclose(out_file);
 
     struct crossover_result_s *result = malloc(sizeof(struct crossover_result_s));
     result->best_i = best;
     result->best_time = last_solution_time;
+    result->iteration_count = best_iteration;
 
     return (void*)result;
 }
