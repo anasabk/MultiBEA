@@ -16,6 +16,7 @@ struct crossover_param_s {
     int base_color_count;
     atomic_int *target_color_count;
     atomic_int *best_i;
+    atomic_int *child_count;
     int size;
     int max_gen_num;
     block_t *edges;
@@ -30,6 +31,7 @@ struct crossover_param_s {
 
 struct crossover_result_s {
     int best_i;
+    int iteration_count;
     double best_time;
 };
 
@@ -74,6 +76,7 @@ int graph_color_genetic(
     block_t best_solution[][TOTAL_BLOCK_NUM(graph_size)], 
     int *best_fitness, 
     float *best_solution_time,
+    int *best_itertion,
     int *uncolored_num,
     int thread_num,
     genetic_criteria_t criteria
