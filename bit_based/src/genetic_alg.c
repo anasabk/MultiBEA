@@ -335,9 +335,9 @@ int local_search(
     block_t pool[],
     int *pool_count
 ) {
-    int i, j, k, i_block;
+    int i, j, k, h, i_block;
     // int switch_count = 0;
-    block_t i_mask;
+    block_t i_mask, temp_mask;
     int competition;
     int conflict_count;
     block_t conflict_array[TOTAL_BLOCK_NUM(graph_size)];
@@ -354,12 +354,18 @@ int local_search(
 
                 for(k = 0; k < TOTAL_BLOCK_NUM(graph_size); k++) {
                     conflict_array[k] = edges[i][k] & child[j][k];
-                    conflict_count += __builtin_popcountl(conflict_array[k]);
+                    if(conflict_array[k]) {
+                        temp_mask = conflict_array[k];
+                        conflict_count += __builtin_popcountl(temp_mask);
+                        for(h = 0; h < sizeof(block_t)*8; h++)
+                            if((temp_mask >> h) & (block_t)1)
+                                competition += weights[k*8*sizeof(block_t)+h];
+                    }
                 }
 
-                for(k = 0; k < graph_size; k++)
-                    if(CHECK_COLOR(conflict_array, k))
-                        competition += weights[k];
+                // for(k = 0; k < graph_size; k++)
+                //     if(CHECK_COLOR(conflict_array, k))
+                //         competition -= weights[k];
 
                 // Swap if no conflicts were found, or competition was smaller than the weight.
                 if(competition < weights[i]) {
