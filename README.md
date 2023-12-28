@@ -1,4 +1,4 @@
-# Genetic-Algorithm-Accelerator-Using-FPGA
+# MUBEA: Multi-Threaded Bit-Based Evolutionary Algorithm
 
 
 #### Multithreaded MInCEA Array-based vs Bit-based, 1000 Iterations
