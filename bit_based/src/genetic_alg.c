@@ -21,6 +21,11 @@
 #include "common.h"
 
 
+// float crossover_time;
+// float searchback_time;
+// float localsearch_time;
+
+
 void graph_color_random(
     int graph_size, 
     const block_t edges[][TOTAL_BLOCK_NUM(graph_size)],  
@@ -49,6 +54,10 @@ int graph_color_genetic(
     int thread_num,
     genetic_criteria_t criteria
 ) {
+    // crossover_time = 0;
+    // searchback_time = 0;
+    // localsearch_time = 0;
+
     // Count the degrees of each vertex
     int edge_degree_list[graph_size];
     count_edges(graph_size, edges, edge_degree_list);
@@ -71,7 +80,6 @@ int graph_color_genetic(
     for (i = 0; i < population_size; i++) {
         graph_color_random(graph_size, edges, population[i], base_color_count);
         color_count[i] = base_color_count;
-        // color_count[i] = graph_color_greedy(graph_size, edges, population[i], graph_size);
         fitness[i] = __INT_MAX__;
     }
 
@@ -80,83 +88,6 @@ int graph_color_genetic(
 
     atomic_long used_parents[(TOTAL_BLOCK_NUM(population_size))];
     memset(used_parents, 0, (TOTAL_BLOCK_NUM(population_size))*sizeof(atomic_long));
-
-    // block_t temp_population[population_size][graph_size][TOTAL_BLOCK_NUM(graph_size)];
-    // int temp_color_count[population_size];
-    // int temp_uncolored[population_size];
-    // int temp_fitness[population_size];
-
-    // atomic_int best_i = 0;
-    // atomic_int target_color;
-    // for(int j = 0; j < 5; j++) {
-    //     memcpy(temp_population, population, population_size * graph_size * (TOTAL_BLOCK_NUM(graph_size)) * sizeof(block_t));
-    //     memcpy(temp_uncolored, uncolored, population_size*sizeof(int));
-    //     memcpy(temp_fitness, fitness, population_size*sizeof(int));
-    //     memcpy(temp_color_count, color_count, population_size*sizeof(int));
-
-    //     target_color = base_color_count;
-    //     best_i = 0;
-    //     struct crossover_param_s temp_param = {
-    //         base_color_count,
-    //         &target_color,
-    //         &best_i,
-    //         graph_size,
-    //         max_gen_num,
-    //         (block_t*)edges,
-    //         criteria == MIN_COST ? weights : edge_degree_list,
-    //         temp_color_count,
-    //         temp_fitness,
-    //         temp_uncolored,
-    //         population_size,
-    //         (block_t*)temp_population,
-    //         used_parents
-    //     };
-
-    //     double best_time;
-
-    //     pthread_t thread_id[thread_num];
-    //     for(i = 0; i < thread_num; i++)
-    //         pthread_create(&thread_id[i], &attr, crossover_thread, &temp_param);
-
-    //     struct crossover_result_s *results[thread_num];
-    //     for(i = 0; i < thread_num; i++)
-    //         pthread_join(thread_id[i], (void**)&results[i]);
-
-    //     // i = 0;
-    //     // struct timespec wait_time;
-    //     // FILE *out_file = fopen("results/local_optima_tests.txt", "a+");
-    //     // int j = 0;
-    //     // while(i < thread_num) {
-    //     //     if(fitness[best_i] == 0 || j > 500) 
-    //     //         target_color = -1;
-
-    //     //     clock_gettime(CLOCK_REALTIME, &wait_time);
-    //     //     wait_time.tv_sec += 1;
-    //     //     if(pthread_timedjoin_np(thread_id[i], (void**)&results[i], &wait_time) == 0)
-    //     //         i++;
-
-    //     //     // printf("%10.6lf\n", ((double)fitness[best_i]));
-    //     //     fprintf(out_file, "%10.6lf\n", ((double)fitness[best_i]));
-    //     //     j++;
-    //     // }
-
-    //     // fprintf(out_file, "\n");
-    //     // fclose(out_file);
-
-    //     best_time = 0;
-    //     for(i = 0; i < thread_num; i++) {
-    //         if(best_i == results[i]->best_i)
-    //             best_time = results[i]->best_time;
-    //         free(results[i]);
-    //     }
-
-    //     *best_fitness = fitness[best_i];
-    //     *uncolored_num = uncolored[best_i];
-    //     *best_solution_time = best_time;
-    //     memcpy(best_solution, temp_population[best_i], base_color_count * (TOTAL_BLOCK_NUM(graph_size)) * sizeof(block_t));
-    // }
-
-    // return temp_color_count[best_i];
 
     atomic_int best_i = 0;
     atomic_int target_color = base_color_count;
@@ -196,12 +127,20 @@ int graph_color_genetic(
         free(results[i]);
     }
 
+    // for(i = 0; i < 100; i++) {
+    //     if (fitness[best_i] >= fitness[i] && color_count[best_i] > color_count[i]) {
+    //         printf("buya\n");
+    //         best_i = i;
+    //     }
+    // }
+
     *best_fitness = fitness[best_i];
     *uncolored_num = uncolored[best_i];
     *best_solution_time = best_time;
     *best_itertion = temp_best_iteration;
     memcpy(best_solution, population[best_i], base_color_count * (TOTAL_BLOCK_NUM(graph_size)) * sizeof(block_t));
 
+    // printf("measured time:\n%f | %f | %f\n", crossover_time, searchback_time, localsearch_time);
     return color_count[best_i];
 }
 
@@ -276,6 +215,8 @@ int search_back(
     block_t pool[],
     int *pool_count
 ) {
+    // struct timeval t1, t2;
+    // gettimeofday(&t1, NULL);
     // Search back to try to place vertices in the pool in previous colors.
     int conflict_count, last_conflict, temp_block, last_conflict_block;
     block_t i_mask, temp_mask;
@@ -305,8 +246,7 @@ int search_back(
                     (*pool_count)--;
                     break;
 
-                } else if (conflict_count == 1) {
-                    if(weights[last_conflict] < weights[i]) {
+                } else if (conflict_count == 1 && weights[last_conflict] < weights[i]) {
                         child[j][i_block] |= i_mask;
                         pool[i_block] &= ~i_mask;
 
@@ -323,6 +263,8 @@ int search_back(
         }
     }
 
+    // gettimeofday(&t2, NULL);
+    // searchback_time += (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0;   // us to ms
     // return switch_count;
 }
 
@@ -335,6 +277,9 @@ int local_search(
     block_t pool[],
     int *pool_count
 ) {
+    // struct timeval t1, t2;
+    // gettimeofday(&t1, NULL);
+
     int i, j, k, h, i_block;
     // int switch_count = 0;
     block_t i_mask, temp_mask;
@@ -363,10 +308,6 @@ int local_search(
                     }
                 }
 
-                // for(k = 0; k < graph_size; k++)
-                //     if(CHECK_COLOR(conflict_array, k))
-                //         competition -= weights[k];
-
                 // Swap if no conflicts were found, or competition was smaller than the weight.
                 if(competition < weights[i]) {
                     // switch_count++;
@@ -386,6 +327,8 @@ int local_search(
         }
     }
 
+    // gettimeofday(&t2, NULL);
+    // localsearch_time += (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0;   // us to ms
     // return switch_count;
 }
 
@@ -422,6 +365,8 @@ int crossover(
     int conflict_count[graph_size];
     memset(conflict_count, 0, graph_size*sizeof(int));
 
+    // struct timeval t1, t2;
+
     // Main loop that iterates over all of the colors of the parents.
     int color1, color2, last_color = 0;
     int i, j, total_conflicts = 0;
@@ -429,6 +374,8 @@ int crossover(
     for(i = 0; i < target_color_count; i++) {
         // The child still has colors that weren't populated.
         if(used_vertex_count < graph_size) {
+            // gettimeofday(&t1, NULL);
+
             // Pick 2 random colors.
             color1 = get_rand_color(color_num1, i, used_color_list[0]);
             color2 = get_rand_color(color_num2, i, used_color_list[1]);
@@ -482,6 +429,8 @@ int crossover(
                 pool,
                 &pool_count
             );
+            // gettimeofday(&t2, NULL);
+            // crossover_time += (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0;   // us to ms
 
         /**
          * All of the child's colors were visited, merge the current colors
@@ -594,6 +543,8 @@ void* crossover_thread(void *param) {
     FILE *out_file = fopen("results/iteration_tests.txt", "a+");
     for(int i = 0; i < max_gen_num; i++) {
         temp_target_color = *target_color_count;
+        if(temp_target_color == 0)
+            break;
 
         // Initialize the child
         memset(child, 0, (TOTAL_BLOCK_NUM(graph_size))*base_color_count*sizeof(block_t));
@@ -650,9 +601,10 @@ void* crossover_thread(void *param) {
 
         // Make the target harder if it was found.
         if(temp_fitness == 0 && child_colors <= *target_color_count) {
-            *target_color_count = child_colors - 1;
-            if(*target_color_count == 0)
-                break;
+            // *target_color_count = child_colors - 1;
+            // if(*target_color_count == 0)
+            //     break;
+            *target_color_count = 0;
         }
 
         RESET_COLOR(used_parents, parent1);

@@ -157,7 +157,7 @@ void* test_graph(void *param) {
     ((struct test_param*)param)->result.solution = calloc(best_color_count*TOTAL_BLOCK_NUM(size), sizeof(block_t));
     memmove(((struct test_param*)param)->result.solution, best_colors, best_color_count*TOTAL_BLOCK_NUM(size)*sizeof(block_t));
     sprintf(((struct test_param*)param)->result.summary,
-        "|%s|%d|%lf|%d|%d|%d|%lf|%f|%f|%f|%f|\n",
+        "|%-40s|%3d|%10.6lf|%3d|%5d|%3d|%10.6lf|%10.6f|%10.6f|%10.6f|%10.6f|\n",
         graph_filename, 
         target_color,
         best_time, 
@@ -412,18 +412,18 @@ int main(int argc, char *argv[]) {
     char buffer[128];
     int thread_count = atoi(argv[2]);
     int crossover_count = atoi(argv[3]);
-    strcpy(buffer, "../graph_datasets/INCEA100");
-    test_rand_incea(100, crossover_count, thread_count, buffer, "../graph_datasets/INCEA100.10.1.colw", argv[1]);
+    // strcpy(buffer, "../graph_datasets/INCEA100");
+    // test_rand_incea(100, crossover_count, thread_count, buffer, "../graph_datasets/INCEA100.10.1.colw", argv[1]);
 
-    strcpy(buffer, "../graph_datasets/INCEA200");
-    test_rand_incea(200, crossover_count, thread_count, buffer, "../graph_datasets/INCEA200.10.1.colw", argv[1]);
+    // strcpy(buffer, "../graph_datasets/INCEA200");
+    // test_rand_incea(200, crossover_count, thread_count, buffer, "../graph_datasets/INCEA200.10.1.colw", argv[1]);
 
     strcpy(buffer, "../graph_datasets/INCEA300");
     test_rand_incea(300, crossover_count, thread_count, buffer, "../graph_datasets/INCEA300.10.1.colw", argv[1]);
 
-    strcpy(buffer, "../graph_datasets/INCEA400");
-    test_rand_incea(400, crossover_count, thread_count, buffer, "../graph_datasets/INCEA400.10.1.colw", argv[1]);
+    // strcpy(buffer, "../graph_datasets/INCEA400");
+    // test_rand_incea(400, crossover_count, thread_count, buffer, "../graph_datasets/INCEA400.10.1.colw", argv[1]);
 
-    strcpy(buffer, "../graph_datasets/INCEA500");
-    test_rand_incea(500, crossover_count, thread_count, buffer, "../graph_datasets/INCEA500.10.1.colw", argv[1]);
+    // strcpy(buffer, "../graph_datasets/INCEA500");
+    // test_rand_incea(500, crossover_count, thread_count, buffer, "../graph_datasets/INCEA500.10.1.colw", argv[1]);
 }
