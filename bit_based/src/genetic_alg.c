@@ -217,16 +217,21 @@ int search_back(
 ) {
     // struct timeval t1, t2;
     // gettimeofday(&t1, NULL);
+
     // Search back to try to place vertices in the pool in previous colors.
-    int conflict_count, last_conflict, temp_block, last_conflict_block;
-    block_t i_mask, temp_mask;
+    int conflict_count, last_conflict, last_conflict_block = 0;
+    block_t i_mask, temp_mask, last_conflict_mask = 0;
     int i, j, k, i_block;
     // int switch_count = 0;
+    int cand_empty, cand_swap;
     for(i = 0; i < graph_size && (*pool_count) > 0; i++) {
         i_block = BLOCK_INDEX(i);
         i_mask = MASK(i);
 
         if(pool[i_block] & i_mask) {
+            cand_empty = -1;
+            cand_swap = -1;
+
             for(j = 0; j < current_color; j++) {
                 conflict_count = 0;
                 for(k = 0; k < TOTAL_BLOCK_NUM(graph_size); k++) {
@@ -236,35 +241,43 @@ int search_back(
                         if(conflict_count > 1)
                             break;
                         last_conflict = sizeof(block_t)*8*(k + 1) - 1 - __builtin_clzl(temp_mask);
+                        last_conflict_mask = temp_mask;
                         last_conflict_block = k;
                     }
                 }
 
                 if(conflict_count == 0) {
-                    child[j][i_block] |= i_mask;
-                    pool[i_block] &= ~i_mask;
-                    (*pool_count)--;
+                    cand_empty = j;
                     break;
 
                 } else if (conflict_count == 1 && weights[last_conflict] < weights[i]) {
-                        child[j][i_block] |= i_mask;
-                        pool[i_block] &= ~i_mask;
-
-                        temp_block = BLOCK_INDEX(last_conflict);
-                        temp_mask = MASK(last_conflict);
-                        child[j][temp_block] &= ~temp_mask;
-                        pool[temp_block] |= temp_mask;
-
-                        // switch_count++;
-                        break;
-                    }
+                    cand_swap = j;
+                    // break;
                 }
+            }
+
+            if(cand_empty != -1) {
+                child[cand_empty][i_block] |= i_mask;
+                pool[i_block] &= ~i_mask;
+                (*pool_count)--;
+                break;
+
+            } else if (cand_swap != -1) {
+                child[cand_swap][i_block] |= i_mask;
+                pool[i_block] &= ~i_mask;
+
+                child[cand_swap][last_conflict_block] &= ~last_conflict_mask;
+                pool[last_conflict_block] |= last_conflict_mask;
+
+                // switch_count++;
+                break;
             }
         }
     }
 
     // gettimeofday(&t2, NULL);
     // searchback_time += (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0;   // us to ms
+
     // return switch_count;
 }
 
@@ -288,11 +301,17 @@ int local_search(
     block_t conflict_array[TOTAL_BLOCK_NUM(graph_size)];
 
     // Search back to try to place vertices in the pool in previous colors.
+    int cand_empty, cand_swap, cand_competition;
+    block_t cand_conflict_array[TOTAL_BLOCK_NUM(graph_size)];
     for(i = 0; i < graph_size && (*pool_count) > 0; i++) { // Through every vertex until the pool is empty.
         i_block = BLOCK_INDEX(i);
         i_mask = MASK(i);
 
         if(pool[i_block] & i_mask) {
+            cand_empty = -1;
+            cand_swap = -1;
+            cand_competition = __INT_MAX__;
+
             for(j = 0; j < color_count; j++) {  // Throught every color until the vertex is not in the pool.
                 conflict_count = 0;
                 competition = 0;
@@ -309,20 +328,36 @@ int local_search(
                 }
 
                 // Swap if no conflicts were found, or competition was smaller than the weight.
-                if(competition < weights[i]) {
-                    // switch_count++;
+                if(competition == 0) {
+                    cand_empty = j;
+                    break;
 
-                    for(k = 0; k < TOTAL_BLOCK_NUM(graph_size); k++) {
-                        child[j][k] &= ~conflict_array[k];
-                        pool[k] |= conflict_array[k];
-                    }
-
-                    child[j][i_block] |= i_mask;
-                    pool[i_block] &= ~i_mask;
-
-                    (*pool_count) += conflict_count - 1;
+                } else if(competition < weights[i] && cand_competition > competition) {
+                    cand_swap = j;
+                    cand_competition = competition;
+                    memmove(cand_conflict_array, conflict_array, sizeof(block_t)*TOTAL_BLOCK_NUM(graph_size));
                     break;
                 }
+            }
+
+            if(cand_empty != -1) {
+                child[cand_empty][i_block] |= i_mask;
+                pool[i_block] &= ~i_mask;
+                (*pool_count) += conflict_count - 1;
+                break;
+
+            } else if(cand_swap != -1) {
+                // switch_count++;
+
+                for(k = 0; k < TOTAL_BLOCK_NUM(graph_size); k++) {
+                    child[cand_swap][k] &= ~cand_conflict_array[k];
+                    pool[k] |= cand_conflict_array[k];
+                }
+
+                child[cand_swap][i_block] |= i_mask;
+                pool[i_block] &= ~i_mask;
+                (*pool_count) += conflict_count - 1;
+                break;
             }
         }
     }
@@ -540,7 +575,13 @@ void* crossover_thread(void *param) {
     int parent1, parent2, child_colors, temp_fitness, best = 0;
     int bad_parent;
     int best_iteration = 0;
+    
     FILE *out_file = fopen("results/iteration_tests.txt", "a+");
+    if(out_file == NULL) {
+        printf("Could not open result file");
+        return NULL;
+    }
+
     for(int i = 0; i < max_gen_num; i++) {
         temp_target_color = *target_color_count;
         if(temp_target_color == 0)
