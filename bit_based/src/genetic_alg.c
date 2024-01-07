@@ -25,6 +25,8 @@
 // float searchback_time;
 // float localsearch_time;
 
+// int searchback_count, localsearch_count;
+
 
 void graph_color_random(
     int graph_size, 
@@ -57,6 +59,8 @@ int graph_color_genetic(
     // crossover_time = 0;
     // searchback_time = 0;
     // localsearch_time = 0;
+    // searchback_count = 0;
+    // localsearch_count = 0;
 
     // Count the degrees of each vertex
     int edge_degree_list[graph_size];
@@ -139,6 +143,8 @@ int graph_color_genetic(
     *best_solution_time = best_time;
     *best_itertion = temp_best_iteration;
     memcpy(best_solution, population[best_i], base_color_count * (TOTAL_BLOCK_NUM(graph_size)) * sizeof(block_t));
+
+    // printf("%d, %d\n", searchback_count, localsearch_count);
 
     // printf("measured time:\n%f | %f | %f\n", crossover_time, searchback_time, localsearch_time);
     return color_count[best_i];
@@ -223,15 +229,11 @@ int search_back(
     block_t i_mask, temp_mask, last_conflict_mask = 0;
     int i, j, k, i_block;
     // int switch_count = 0;
-    int cand_empty, cand_swap;
     for(i = 0; i < graph_size && (*pool_count) > 0; i++) {
         i_block = BLOCK_INDEX(i);
         i_mask = MASK(i);
 
         if(pool[i_block] & i_mask) {
-            cand_empty = -1;
-            cand_swap = -1;
-
             for(j = 0; j < current_color; j++) {
                 conflict_count = 0;
                 for(k = 0; k < TOTAL_BLOCK_NUM(graph_size); k++) {
@@ -247,30 +249,19 @@ int search_back(
                 }
 
                 if(conflict_count == 0) {
-                    cand_empty = j;
+                    child[j][i_block] |= i_mask;
+                    pool[i_block] &= ~i_mask;
+                    (*pool_count)--;
                     break;
 
                 } else if (conflict_count == 1 && weights[last_conflict] < weights[i]) {
-                    cand_swap = j;
-                    // break;
+                    child[j][i_block] |= i_mask;
+                    pool[i_block] &= ~i_mask;
+
+                    child[j][last_conflict_block] &= ~last_conflict_mask;
+                    pool[last_conflict_block] |= last_conflict_mask;
+                    break;
                 }
-            }
-
-            if(cand_empty != -1) {
-                child[cand_empty][i_block] |= i_mask;
-                pool[i_block] &= ~i_mask;
-                (*pool_count)--;
-                break;
-
-            } else if (cand_swap != -1) {
-                child[cand_swap][i_block] |= i_mask;
-                pool[i_block] &= ~i_mask;
-
-                child[cand_swap][last_conflict_block] &= ~last_conflict_mask;
-                pool[last_conflict_block] |= last_conflict_mask;
-
-                // switch_count++;
-                break;
             }
         }
     }
@@ -301,17 +292,11 @@ int local_search(
     block_t conflict_array[TOTAL_BLOCK_NUM(graph_size)];
 
     // Search back to try to place vertices in the pool in previous colors.
-    int cand_empty, cand_swap, cand_competition;
-    block_t cand_conflict_array[TOTAL_BLOCK_NUM(graph_size)];
     for(i = 0; i < graph_size && (*pool_count) > 0; i++) { // Through every vertex until the pool is empty.
         i_block = BLOCK_INDEX(i);
         i_mask = MASK(i);
 
         if(pool[i_block] & i_mask) {
-            cand_empty = -1;
-            cand_swap = -1;
-            cand_competition = __INT_MAX__;
-
             for(j = 0; j < color_count; j++) {  // Throught every color until the vertex is not in the pool.
                 conflict_count = 0;
                 competition = 0;
@@ -329,35 +314,22 @@ int local_search(
 
                 // Swap if no conflicts were found, or competition was smaller than the weight.
                 if(competition == 0) {
-                    cand_empty = j;
+                    child[j][i_block] |= i_mask;
+                    pool[i_block] &= ~i_mask;
+                    (*pool_count) += conflict_count - 1;
                     break;
 
-                } else if(competition < weights[i] && cand_competition > competition) {
-                    cand_swap = j;
-                    cand_competition = competition;
-                    memmove(cand_conflict_array, conflict_array, sizeof(block_t)*TOTAL_BLOCK_NUM(graph_size));
+                } else if(competition < weights[i]) {
+                    for(k = 0; k < TOTAL_BLOCK_NUM(graph_size); k++) {
+                        child[j][k] &= ~conflict_array[k];
+                        pool[k] |= conflict_array[k];
+                    }
+
+                    child[j][i_block] |= i_mask;
+                    pool[i_block] &= ~i_mask;
+                    (*pool_count) += conflict_count - 1;
                     break;
                 }
-            }
-
-            if(cand_empty != -1) {
-                child[cand_empty][i_block] |= i_mask;
-                pool[i_block] &= ~i_mask;
-                (*pool_count) += conflict_count - 1;
-                break;
-
-            } else if(cand_swap != -1) {
-                // switch_count++;
-
-                for(k = 0; k < TOTAL_BLOCK_NUM(graph_size); k++) {
-                    child[cand_swap][k] &= ~cand_conflict_array[k];
-                    pool[k] |= cand_conflict_array[k];
-                }
-
-                child[cand_swap][i_block] |= i_mask;
-                pool[i_block] &= ~i_mask;
-                (*pool_count) += conflict_count - 1;
-                break;
             }
         }
     }
