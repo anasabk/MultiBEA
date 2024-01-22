@@ -547,12 +547,6 @@ void* crossover_thread(void *param) {
     int parent1, parent2, child_colors, temp_fitness, best = 0;
     int bad_parent;
     int best_iteration = 0;
-    
-    FILE *out_file = fopen("results/iteration_tests.txt", "a+");
-    if(out_file == NULL) {
-        printf("Could not open result file");
-        return NULL;
-    }
 
     for(int i = 0; i < max_gen_num; i++) {
         temp_target_color = *target_color_count;
@@ -625,9 +619,6 @@ void* crossover_thread(void *param) {
 
         (*child_count)++;
     }
-
-    fprintf(out_file, "\n");
-    fclose(out_file);
 
     struct crossover_result_s *result = malloc(sizeof(struct crossover_result_s));
     result->best_i = best;

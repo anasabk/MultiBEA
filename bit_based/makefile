@@ -19,10 +19,10 @@ obj/%.o: src/%.c
 	gcc $(CFLAGS) -c $< -o $@ $(LINKFLAGS)
 
 build: $(OBJECTS)
-	gcc $(CFLAGS) $(OBJECTS) -o genetic_coloring $(LINKFLAGS)
+	gcc $(CFLAGS) $(OBJECTS) -o MultiBEA $(LINKFLAGS)
 
 run: # ./graph_coloring test_list #_of_parallel_tests
-	./genetic_coloring ../test_list.txt ../results.txt 1
+	./MultiBEA tests/iteration_tests.txt results/DIMACS_test.txt 1
 
 clean:
-	rm -rf obj genetic_coloring
+	rm -rf obj MultiBEA
