@@ -38,6 +38,7 @@ struct test_param {
     char graph_filename[128];
     char weight_filename[128];
     char result_filename[128];
+    FILE* summary_file;
     struct test_return result;
 };
 
@@ -165,7 +166,11 @@ void* test_graph_single(void *param) {
     char *result_filename = ((struct test_param*)param)->result_filename;
     genetic_criteria_t criteria = MIN_POOL;
 
-    block_t edges[size][TOTAL_BLOCK_NUM(size)];
+    // if(size > 40000)
+        // block_t edges[(size_t)size][(size_t)TOTAL_BLOCK_NUM((size_t)size)];
+    // else
+        block_t *edges = malloc(sizeof(block_t) * (size_t)size * TOTAL_BLOCK_NUM((size_t)size));
+
     if(!read_graph(graph_filename, size, edges)) {
         printf("Could not initialize graph from %s, exiting ...\n", graph_filename);
         return NULL;
@@ -227,7 +232,30 @@ void* test_graph_single(void *param) {
     gettimeofday(&t2, NULL);
     total_execution_time += (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0;
 
-    // is_valid(size, edges, temp_color_count, temp_colors);
+    if(temp_fitness == 0)
+        is_valid(size, edges, temp_color_count, temp_colors);
+
+    printf(
+        "|%s|%3d|%10.6lf|%3d|%5d|%3d|%10.6lf|\n",
+        graph_filename, 
+        target_color,
+        temp_time, 
+        temp_color_count,
+        temp_fitness,
+        temp_uncolored,
+        total_execution_time
+    );
+
+    fprintf(((struct test_param*)param)->summary_file,
+        "|%s|%3d|%10.6lf|%3d|%5d|%3d|%10.6lf|\n",
+        graph_filename, 
+        target_color,
+        temp_time, 
+        temp_color_count,
+        temp_fitness,
+        temp_uncolored,
+        total_execution_time
+    );
 
     char buffer[512];
     sprintf(buffer,
@@ -240,15 +268,35 @@ void* test_graph_single(void *param) {
         temp_uncolored,
         total_execution_time
     );
+
     print_colors(result_filename, buffer, target_color, size, temp_colors);
 
+    free(edges);
     return NULL;
 }
 
 int main(int argc, char *argv[]) {
-    if(argc < 1) {
+    if(argc < 2) {
         printf("Too few arguments.\n");
         return 0;
+    }
+
+    const rlim_t kStackSize = 64L * 1024L * 1024L * 1024L;   // min stack size = 64 Mb
+    struct rlimit rl;
+    int result;
+
+    result = getrlimit(RLIMIT_STACK, &rl);
+    if (result == 0)
+    {
+        if (rl.rlim_cur < kStackSize)
+        {
+            rl.rlim_cur = kStackSize;
+            result = setrlimit(RLIMIT_STACK, &rl);
+            if (result != 0)
+            {
+                fprintf(stderr, "setrlimit returned result = %d\n", result);
+            }
+        }
     }
 
     terminated = false;
@@ -260,11 +308,21 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    FILE *summary_file = fopen(argv[2], "a+");
+    if(summary_file == NULL) {
+        printf("summary file could not be opened\n");
+        return 0;
+    }
+
     pthread_attr_t attr;
     pthread_attr_init(&attr);
 
+    printf("|  graph name   | target color | k time | k | cost | uncolored | total time |\n");
+
     char buffer[256], *token;
     struct test_param param;
+    param.summary_file = summary_file;
+    int test_count;
     while(!feof(test_list_file)) {
         fgets(buffer, 256, test_list_file);
         buffer[strcspn(buffer, "\n")] = 0;
@@ -274,11 +332,13 @@ int main(int argc, char *argv[]) {
         param.thread_count = atoi(strtok(NULL, " "));
         param.iteration_count = atoi(strtok(NULL, " "));
         param.population_size = atoi(strtok(NULL, " "));
+        test_count = atoi(strtok(NULL, " "));
         strcpy(param.graph_filename, strtok(NULL, " "));
         strcpy(param.weight_filename, strtok(NULL, " "));
         strcpy(param.result_filename, strtok(NULL, " "));
 
-        test_graph_single(&param);
+        for(;  test_count > 0; test_count--)
+            test_graph_single(&param);
     }
 
     fclose(test_list_file);

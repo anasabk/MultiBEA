@@ -66,13 +66,18 @@ int graph_color_genetic(
     int edge_degree_list[graph_size];
     count_edges(graph_size, edges, edge_degree_list);
 
-    block_t population[population_size][base_color_count][TOTAL_BLOCK_NUM(graph_size)];
+    block_t *population[population_size];
+    for(int i = 0; i < population_size; i++)
+        population[i] = calloc(base_color_count * TOTAL_BLOCK_NUM((size_t)graph_size), sizeof(block_t));
+
+    // block_t population[population_size][base_color_count][TOTAL_BLOCK_NUM(graph_size)];
+    // memset(population, 0, population_size * base_color_count * (TOTAL_BLOCK_NUM(graph_size)) * sizeof(block_t));
+
     int color_count[population_size];
     int uncolored[population_size];
     int fitness[population_size];
 
     // Initialize The arrays.
-    memset(population, 0, population_size * base_color_count * (TOTAL_BLOCK_NUM(graph_size)) * sizeof(block_t));
     memset(uncolored, 0, population_size*sizeof(int));
     memset(fitness, 0, population_size*sizeof(int));
 
@@ -117,9 +122,14 @@ int graph_color_genetic(
     for(i = 0; i < thread_num; i++)
         pthread_create(&thread_id[i], &attr, crossover_thread, &temp_param);
 
+    struct timespec progress_delay;
+    progress_delay.tv_nsec = 0;
+    progress_delay.tv_sec = 1;
     struct crossover_result_s *results[thread_num];
     for(i = 0; i < thread_num; i++)
-        pthread_join(thread_id[i], (void**)&results[i]);
+        while(pthread_timedjoin_np(thread_id[i], (void**)&results[i], &progress_delay) != 0)
+            print_progress(child_count, max_gen_num*thread_num);
+        // pthread_join(thread_id[i], (void**)&results[i]);
 
     double best_time = 0;
     int temp_best_iteration = 0;
@@ -147,6 +157,9 @@ int graph_color_genetic(
     // printf("%d, %d\n", searchback_count, localsearch_count);
 
     // printf("measured time:\n%f | %f | %f\n", crossover_time, searchback_time, localsearch_time);
+    printf("\r");
+    for(int i = 0; i < population_size; i++)
+        free(population[i]);
     return color_count[best_i];
 }
 
@@ -537,11 +550,12 @@ void* crossover_thread(void *param) {
     int *fitness = ((struct crossover_param_s*)param)->fitness;
     int *uncolored = ((struct crossover_param_s*)param)->uncolored;
     int population_size = ((struct crossover_param_s*)param)->population_size;
-    block_t (*population)[][base_color_count][TOTAL_BLOCK_NUM(graph_size)] = (block_t(*)[][base_color_count][TOTAL_BLOCK_NUM(graph_size)])((struct crossover_param_s*)param)->population;
+    block_t *population = (block_t(*)[])((struct crossover_param_s*)param)->population;
     atomic_long *used_parents = ((struct crossover_param_s*)param)->used_parents;
 
     // Keep generating solutions for max_gen_num generations.
-    block_t child[base_color_count][TOTAL_BLOCK_NUM(graph_size)];
+    block_t *child = malloc(base_color_count * TOTAL_BLOCK_NUM(graph_size) * sizeof(block_t));
+    // block_t child[base_color_count][TOTAL_BLOCK_NUM(graph_size)];
     int temp_target_color = *target_color_count;
     int temp_uncolored;
     int parent1, parent2, child_colors, temp_fitness, best = 0;
@@ -569,8 +583,8 @@ void* crossover_thread(void *param) {
             weights,
             color_count[parent1], 
             color_count[parent2], 
-            (*population)[parent1], 
-            (*population)[parent2], 
+            population[parent1], 
+            population[parent2], 
             temp_target_color,
             child, 
             &child_colors,
@@ -585,7 +599,7 @@ void* crossover_thread(void *param) {
 
         // Replace a dead parent.
         if(child_colors <= color_count[bad_parent] && temp_fitness <= fitness[bad_parent]) {
-            memmove((*population)[bad_parent], child, (TOTAL_BLOCK_NUM(graph_size))*base_color_count*sizeof(block_t));
+            memmove(population[bad_parent], child, (TOTAL_BLOCK_NUM(graph_size))*base_color_count*sizeof(block_t));
             color_count[bad_parent] = child_colors;
             fitness[bad_parent] = temp_fitness;
             uncolored[bad_parent] = temp_uncolored;
@@ -608,10 +622,10 @@ void* crossover_thread(void *param) {
 
         // Make the target harder if it was found.
         if(temp_fitness == 0 && child_colors <= *target_color_count) {
-            // *target_color_count = child_colors - 1;
+            *target_color_count = child_colors - 1;
             // if(*target_color_count == 0)
             //     break;
-            *target_color_count = 0;
+            // *target_color_count = 0;
         }
 
         RESET_COLOR(used_parents, parent1);
@@ -625,5 +639,6 @@ void* crossover_thread(void *param) {
     result->best_time = last_solution_time;
     result->iteration_count = best_iteration;
 
+    free(child);
     return (void*)result;
 }

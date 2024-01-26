@@ -1,0 +1,1 @@
+1000 25 12 600000 100 5 ../graph_datasets/DSJC1000.1.edgelist null results/DSJC1000.1.txt
